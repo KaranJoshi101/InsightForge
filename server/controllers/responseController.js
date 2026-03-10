@@ -142,8 +142,70 @@ const getSurveyResponses = async (req, res, next) => {
             [surveyId]
         );
 
+        const responseIds = responsesResult.rows.map((response) => response.id);
+        let answersByResponseId = new Map();
+
+        if (responseIds.length > 0) {
+            const answersResult = await pool.query(
+                `SELECT
+                    a.response_id,
+                    a.id,
+                    a.question_id,
+                    q.order_index,
+                    q.question_text,
+                    q.question_type,
+                    a.answer_text,
+                    o.option_text
+                 FROM answers a
+                 JOIN questions q ON a.question_id = q.id
+                 LEFT JOIN options o ON a.option_id = o.id
+                 WHERE a.response_id = ANY($1::int[])
+                 ORDER BY a.response_id, q.order_index, a.id`,
+                [responseIds]
+            );
+
+            answersByResponseId = answersResult.rows.reduce((responseMap, row) => {
+                if (!responseMap.has(row.response_id)) {
+                    responseMap.set(row.response_id, new Map());
+                }
+
+                const questionMap = responseMap.get(row.response_id);
+                const existingAnswer = questionMap.get(row.question_id);
+
+                if (!existingAnswer) {
+                    questionMap.set(row.question_id, {
+                        id: row.id,
+                        question_id: row.question_id,
+                        question_text: row.question_text,
+                        question_type: row.question_type,
+                        order_index: row.order_index,
+                        answer_text: row.answer_text,
+                        option_text: row.option_text,
+                    });
+                } else if (row.question_type === 'checkbox' && row.option_text) {
+                    existingAnswer.option_text = existingAnswer.option_text
+                        ? `${existingAnswer.option_text}, ${row.option_text}`
+                        : row.option_text;
+                }
+
+                return responseMap;
+            }, new Map());
+        }
+
+        const responses = responsesResult.rows.map((response) => {
+            const questionMap = answersByResponseId.get(response.id);
+            const answers = questionMap
+                ? Array.from(questionMap.values()).sort((left, right) => left.order_index - right.order_index)
+                : [];
+
+            return {
+                ...response,
+                answers,
+            };
+        });
+
         res.json({
-            responses: responsesResult.rows,
+            responses,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
@@ -159,10 +221,15 @@ const getSurveyResponses = async (req, res, next) => {
 const getResponseDetails = async (req, res, next) => {
     try {
         const { responseId } = req.params;
+        const isAdmin = req.user.role === 'admin';
 
         const responseResult = await pool.query(
-            'SELECT r.id, r.survey_id, r.user_id, u.name, u.email, r.submitted_at FROM responses r LEFT JOIN users u ON r.user_id = u.id WHERE r.id = $1',
-            [responseId]
+            `SELECT r.id, r.survey_id, r.user_id, u.name, u.email, s.title AS survey_title, r.submitted_at
+             FROM responses r
+             LEFT JOIN users u ON r.user_id = u.id
+             JOIN surveys s ON r.survey_id = s.id
+             WHERE r.id = $1 AND ($2::boolean = true OR r.user_id = $3)`,
+            [responseId, isAdmin, req.user.userId]
         );
 
         if (responseResult.rows.length === 0) {
@@ -175,6 +242,7 @@ const getResponseDetails = async (req, res, next) => {
             `SELECT
                 a.id,
                 a.question_id,
+                q.order_index,
                 q.question_text,
                 q.question_type,
                 a.answer_text,
@@ -189,7 +257,35 @@ const getResponseDetails = async (req, res, next) => {
         );
 
         const response = responseResult.rows[0];
-        response.answers = answersResult.rows;
+        const answersMap = new Map();
+
+        for (const row of answersResult.rows) {
+            const existingAnswer = answersMap.get(row.question_id);
+
+            if (!existingAnswer) {
+                answersMap.set(row.question_id, {
+                    id: row.id,
+                    question_id: row.question_id,
+                    order_index: row.order_index,
+                    question_text: row.question_text,
+                    question_type: row.question_type,
+                    answer_text: row.answer_text,
+                    option_id: row.option_id,
+                    option_text: row.option_text,
+                });
+                continue;
+            }
+
+            if (row.question_type === 'checkbox' && row.option_text) {
+                existingAnswer.option_text = existingAnswer.option_text
+                    ? `${existingAnswer.option_text}, ${row.option_text}`
+                    : row.option_text;
+            }
+        }
+
+        response.answers = Array.from(answersMap.values()).sort(
+            (left, right) => left.order_index - right.order_index
+        );
 
         res.json({ response });
     } catch (err) {
@@ -305,6 +401,7 @@ const getSurveyAnalytics = async (req, res, next) => {
                 // Get text responses
                 const textResult = await pool.query(
                     `SELECT a.answer_text, u.name as user_name
+                                                , r.user_id
                      FROM answers a
                      JOIN responses r ON a.response_id = r.id
                      LEFT JOIN users u ON r.user_id = u.id
@@ -318,6 +415,7 @@ const getSurveyAnalytics = async (req, res, next) => {
                 questionAnalytics.text_responses = textResult.rows.map(row => ({
                     answer_text: row.answer_text,
                     user_name: row.user_name || 'Anonymous',
+                    user_id: row.user_id,
                 }));
             }
 

@@ -65,7 +65,7 @@ const CreateSurveyPage = () => {
                 await surveyService.updateSurvey(id, { title, description });
                 setSuccess('Survey updated successfully!');
                 setTimeout(() => {
-                    navigate('/admin');
+                    navigate('/admin/surveys');
                 }, 1500);
             } else {
                 const response = await surveyService.createSurvey(title, description);
@@ -272,8 +272,8 @@ const CreateSurveyPage = () => {
 
     return (
         <div className="container mt-4">
-            <Link to="/admin" style={{ color: '#003594', textDecoration: 'none' }}>
-                ← Back to Admin Dashboard
+            <Link to="/admin/surveys" style={{ color: '#003594', textDecoration: 'none' }}>
+                ← Back to Manage Surveys
             </Link>
 
             {loading && <LoadingSpinner />}

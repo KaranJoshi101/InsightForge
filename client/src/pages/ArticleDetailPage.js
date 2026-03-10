@@ -3,6 +3,16 @@ import { useParams, Link } from 'react-router-dom';
 import articleService from '../services/articleService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+
+const normalizeArticleImageUrls = (html) => {
+    if (!html) return html;
+
+    // Rewrite root-relative uploads to backend origin so images resolve in dev and prod.
+    return html.replace(/src=(['"])\/uploads\//gi, `src=$1${API_ORIGIN}/uploads/`);
+};
+
 const ArticleDetailPage = () => {
     const { id } = useParams();
     const [article, setArticle] = useState(null);
@@ -65,7 +75,7 @@ const ArticleDetailPage = () => {
                             color: '#2B2B2B',
                             fontSize: '1.05rem',
                         }}
-                        dangerouslySetInnerHTML={{ __html: article.content }}
+                        dangerouslySetInnerHTML={{ __html: normalizeArticleImageUrls(article.content) }}
                     />
                 </div>
             </article>

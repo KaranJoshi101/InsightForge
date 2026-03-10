@@ -57,6 +57,28 @@ const getAllUsers = async (req, res, next) => {
     }
 };
 
+// Get a single user by id (admin only)
+const getUserById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const result = await pool.query(
+            `SELECT id, name, email, role, is_banned, location, age, gender, phone, bio, created_at, updated_at
+             FROM users
+             WHERE id = $1`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({ user: result.rows[0] });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // Ban user (admin only)
 const banUser = async (req, res, next) => {
     try {
@@ -221,6 +243,7 @@ const updateProfile = async (req, res, next) => {
 
 module.exports = {
     getAllUsers,
+    getUserById,
     banUser,
     unbanUser,
     getDashboardStats,

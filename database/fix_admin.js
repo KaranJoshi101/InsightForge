@@ -45,7 +45,7 @@ const fixAdmin = async () => {
             console.log(`   Articles authored: ${row.articles_authored}`);
         });
 
-        console.log('\n✨ Only Sarah Chen (admin) can now create surveys and publish articles!');
+        console.log('\n✨ Only Manoj Kumar (admin) can now create surveys and publish articles!');
         
         await pool.end();
     } catch (err) {

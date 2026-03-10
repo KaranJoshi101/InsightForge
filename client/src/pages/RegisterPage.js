@@ -27,8 +27,9 @@ const RegisterPage = () => {
             return;
         }
 
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters long');
+        const strongPasswordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,128}$/;
+        if (!strongPasswordPattern.test(password)) {
+            setError('Password must be 10-128 chars and include uppercase, lowercase, number, and special character');
             return;
         }
 
@@ -85,6 +86,9 @@ const RegisterPage = () => {
                                     placeholder="Enter a password"
                                     required
                                 />
+                                <small style={{ color: '#666' }}>
+                                    Use 10+ characters with uppercase, lowercase, number, and symbol.
+                                </small>
                             </div>
 
                             <div className="form-group">

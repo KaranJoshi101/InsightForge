@@ -1,10 +1,20 @@
 // Error Handler Middleware
 const errorHandler = (err, req, res, next) => {
-    console.error('❌ Error:', err);
+    if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error:', err);
+    } else {
+        console.error('❌ Error:', {
+            message: err.message,
+            code: err.code,
+            statusCode: err.statusCode,
+        });
+    }
 
     // Default error response
     let statusCode = err.statusCode || 500;
-    let message = err.message || 'Internal Server Error';
+    let message = process.env.NODE_ENV === 'development'
+        ? (err.message || 'Internal Server Error')
+        : 'Internal Server Error';
 
     // Handle specific error types
     if (err.code === 'UNIQUE_VIOLATION') {

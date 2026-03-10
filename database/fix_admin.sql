@@ -5,15 +5,15 @@ SET role = 'user',
     bio = 'Market research director with 15+ years experience in consumer insights.'
 WHERE email = 'yuki.tanaka@corp.jp';
 
--- Update Sarah Chen's bio to reflect she is the admin
+-- Update Manoj Kumar's bio to reflect he is the admin
 UPDATE users 
-SET bio = 'Lead Product Manager and Platform Administrator with passion for user research and data-driven decisions.'
-WHERE email = 'sarah.chen@surveyapp.com';
+SET bio = 'Assistant Professor specializing in biostatistics, health economics, and applied data analysis.'
+WHERE email = 'manojkumar@jnu.ac.in';
 
--- Update all surveys to be created by admin (user 1 - Sarah Chen)
+-- Update all surveys to be created by admin (user 1 - Manoj Kumar)
 UPDATE surveys SET created_by = 1 WHERE created_by != 1;
 
--- Update all articles to be authored by admin (user 1 - Sarah Chen)
+-- Update all articles to be authored by admin (user 1 - Manoj Kumar)
 UPDATE articles SET author = 1 WHERE author != 1;
 
 -- Verify the changes

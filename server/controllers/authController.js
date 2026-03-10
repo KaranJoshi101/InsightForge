@@ -6,25 +6,21 @@ const { hashPassword, comparePassword, generateToken } = require('../utils/auth'
 const register = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
+        const safeName = typeof name === 'string' ? name.trim() : '';
+        const safeEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
         // Validation
-        if (!name || !email || !password) {
+        if (!safeName || !safeEmail || !password) {
             return res.status(400).json({
                 error: 'Missing required fields',
                 required: ['name', 'email', 'password'],
             });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({
-                error: 'Password must be at least 6 characters long',
-            });
-        }
-
         // Check if user already exists
         const existingUser = await pool.query(
             'SELECT id FROM users WHERE email = $1',
-            [email]
+            [safeEmail]
         );
 
         if (existingUser.rows.length > 0) {
@@ -39,7 +35,7 @@ const register = async (req, res, next) => {
         // Insert user
         const result = await pool.query(
             'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-            [name, email, passwordHash, 'user']
+            [safeName, safeEmail, passwordHash, 'user']
         );
 
         const user = result.rows[0];
@@ -64,9 +60,10 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
+        const safeEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
         // Validation
-        if (!email || !password) {
+        if (!safeEmail || !password) {
             return res.status(400).json({
                 error: 'Missing email or password',
             });
@@ -75,7 +72,7 @@ const login = async (req, res, next) => {
         // Find user
         const result = await pool.query(
             'SELECT id, name, email, password_hash, role, is_banned FROM users WHERE email = $1',
-            [email]
+            [safeEmail]
         );
 
         if (result.rows.length === 0) {

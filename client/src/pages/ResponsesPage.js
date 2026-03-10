@@ -36,17 +36,35 @@ const ResponsesPage = () => {
 
     return (
         <div className="container mt-4">
-            <h1 style={{ color: '#003594' }}>My Survey Responses</h1>
-            <p style={{ color: '#555', marginBottom: '24px' }}>
-                View all surveys you have responded to
-            </p>
+            <div className="responses-shell">
+            <div className="responses-header">
+                <div>
+                    <h1 style={{ color: '#003594', marginBottom: 0 }}>My Survey Responses</h1>
+                    <p>Review the surveys you have already completed.</p>
+                </div>
+                <div className="admin-page-actions">
+                    {responses.length > 0 && (
+                        <div className="survey-meta-row" style={{ marginBottom: 0 }}>
+                            <span className="survey-meta-chip primary">{responses.length} on this page</span>
+                            <span className="survey-meta-chip accent">Page {page} of {totalPages || 1}</span>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/dashboard')}
+                        className="btn btn-secondary"
+                    >
+                        Back to Dashboard
+                    </button>
+                </div>
+            </div>
 
             {error && <div className="alert alert-danger">{error}</div>}
 
             {responses.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                    <h2 style={{ color: '#888' }}>No responses yet</h2>
-                    <p style={{ color: '#999', marginBottom: '24px' }}>
+                <div className="empty-state">
+                    <h2>No responses yet</h2>
+                    <p>
                         You haven't submitted any survey responses yet. Start by taking a survey!
                     </p>
                     <button
@@ -57,37 +75,32 @@ const ResponsesPage = () => {
                     </button>
                 </div>
             ) : (
-                <div>
-                    <table className="card">
-                        <thead>
-                            <tr>
-                                <th>Survey</th>
-                                <th>Submitted</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {responses.map((response) => (
-                                <tr key={response.id}>
-                                    <td style={{ padding: '12px' }}>
-                                        <strong>{response.survey_title || 'Survey'}</strong>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        {new Date(response.submitted_at).toLocaleDateString()}
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <button
-                                            onClick={() => navigate(`/responses/${response.id}`)}
-                                            className="btn btn-secondary"
-                                            style={{ padding: '6px 12px', fontSize: '0.9rem' }}
-                                        >
-                                            View Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="response-list">
+                    {responses.map((response) => (
+                        <div key={response.id} className="response-list-card">
+                            <div className="response-list-top">
+                                <div>
+                                    <p className="response-list-title">{response.survey_title || 'Survey'}</p>
+                                    <p className="response-list-meta">
+                                        Submitted on {new Date(response.submitted_at).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <span className="response-status-badge">
+                                    Completed
+                                </span>
+                            </div>
+
+                            <div className="response-list-actions">
+                                <button
+                                    onClick={() => navigate(`/responses/${response.id}`)}
+                                    className="btn btn-primary"
+                                    style={{ padding: '8px 14px', fontSize: '0.9rem' }}
+                                >
+                                    View Details
+                                </button>
+                            </div>
+                        </div>
+                    ))}
 
                     {totalPages > 1 && (
                         <div className="pagination">
@@ -110,6 +123,7 @@ const ResponsesPage = () => {
                     )}
                 </div>
             )}
+            </div>
         </div>
     );
 };

@@ -1,8 +1,10 @@
 -- Seed data for initial setup
--- NOTE: Only Sarah Chen (user 1) is admin - she is the ONLY one who can create surveys and publish articles
--- Insert diverse users with comprehensive profile data (password: admin123 - bcrypted hash)
+-- NOTE: Only Manoj Kumar (user 1) is admin - he is the ONLY one who can create surveys and publish articles
+-- Insert diverse users with comprehensive profile data
+-- Admin password: manoj123 (row 1 hash)
+-- Default user password: admin123 (remaining rows hash)
 INSERT INTO users (name, email, password_hash, role, location, age, gender, phone, bio) VALUES
-('Sarah Chen', 'sarah.chen@surveyapp.com', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'admin', 'San Francisco, CA', 32, 'Female', '+1-415-555-0101', 'Lead Product Manager and Platform Administrator with passion for user research and data-driven decisions.'),
+('Manoj Kumar', 'manojkumar@jnu.ac.in', '$2a$10$LVtW6aDEwsV3Flu9c1tLCuw7CkHoQrP5KcnzqRrs3913Iml1xs9iG', 'admin', 'New Delhi, India', 39, 'Male', '+91-99903-46151', 'Assistant Professor specializing in biostatistics, health economics, and applied data analysis.'),
 ('Marcus Johnson', 'marcus.j@healthcare.com', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'user', 'Chicago, IL', 45, 'Male', '+1-312-555-0102', 'Healthcare administrator interested in patient satisfaction surveys.'),
 ('Priya Patel', 'priya.patel@tech.com', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'user', 'Austin, TX', 28, 'Female', '+1-512-555-0103', 'UX researcher exploring new survey methodologies.'),
 ('Ahmed Al-Rashid', 'ahmed.rashid@consulting.ae', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'user', 'Dubai, UAE', 38, 'Male', '+971-4-555-0104', 'Business consultant specializing in customer feedback analysis.'),
@@ -20,7 +22,7 @@ INSERT INTO users (name, email, password_hash, role, location, age, gender, phon
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert diverse surveys
--- NOTE: All surveys created by admin (Sarah Chen - user 1) ONLY
+-- NOTE: All surveys created by admin (Manoj Kumar - user 1) ONLY
 INSERT INTO surveys (title, description, created_by, status) VALUES
 ('Customer Satisfaction Survey', 'Help us improve our services by sharing your feedback', 1, 'published'),
 ('Employee Engagement Survey 2026', 'Annual survey to measure workplace satisfaction and engagement', 1, 'published'),

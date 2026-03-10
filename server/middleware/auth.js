@@ -18,7 +18,7 @@ const authenticate = (req, res, next) => {
     } catch (err) {
         return res.status(401).json({
             error: 'Authentication failed',
-            message: err.message,
+            message: 'Invalid or expired token',
         });
     }
 };

@@ -14,6 +14,21 @@ const TakeSurveyPage = () => {
     const [success, setSuccess] = useState('');
     const [answers, setAnswers] = useState({});
 
+    const getQuestionTypeLabel = (questionType) => {
+        switch (questionType) {
+            case 'multiple_choice':
+                return 'Select one option';
+            case 'checkbox':
+                return 'Select one or more options';
+            case 'rating':
+                return 'Choose a rating';
+            case 'text':
+                return 'Write your response';
+            default:
+                return '';
+        }
+    };
+
     const fetchSurvey = useCallback(async () => {
         try {
             setLoading(true);
@@ -39,6 +54,45 @@ const TakeSurveyPage = () => {
         }));
     };
 
+    const handleCheckboxChange = (questionId, optionId) => {
+        setAnswers((prev) => {
+            const currentSelections = Array.isArray(prev[questionId]) ? prev[questionId] : [];
+            const optionValue = optionId.toString();
+            const hasSelection = currentSelections.includes(optionValue);
+
+            return {
+                ...prev,
+                [questionId]: hasSelection
+                    ? currentSelections.filter((selectedId) => selectedId !== optionValue)
+                    : [...currentSelections, optionValue],
+            };
+        });
+    };
+
+    const validateAnswers = () => {
+        for (const question of survey.questions) {
+            if (!question.is_required) {
+                continue;
+            }
+
+            const value = answers[question.id];
+
+            if (question.question_type === 'text' && !String(value || '').trim()) {
+                return `Please answer question ${question.order_index || ''}: ${question.question_text}`;
+            }
+
+            if ((question.question_type === 'multiple_choice' || question.question_type === 'rating') && !value) {
+                return `Please select an answer for question ${question.order_index || ''}: ${question.question_text}`;
+            }
+
+            if (question.question_type === 'checkbox' && (!Array.isArray(value) || value.length === 0)) {
+                return `Please select at least one option for question ${question.order_index || ''}: ${question.question_text}`;
+            }
+        }
+
+        return '';
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -46,21 +100,38 @@ const TakeSurveyPage = () => {
         setSuccess('');
 
         try {
-            // Convert answers object to array format
-            const answersArray = survey.questions.map((question) => {
-                const answer = {};
-                answer.question_id = question.id;
+            const validationError = validateAnswers();
+            if (validationError) {
+                setError(validationError);
+                setSubmitting(false);
+                return;
+            }
 
-                if (question.question_type === 'multiple_choice' || question.question_type === 'checkbox') {
-                    const selectedOptionId = parseInt(answers[question.id]);
-                    if (selectedOptionId) {
-                        answer.option_id = selectedOptionId;
-                    }
-                } else {
-                    answer.answer_text = answers[question.id] || '';
+            // Convert answers object to array format expected by backend.
+            const answersArray = survey.questions.flatMap((question) => {
+                const rawAnswer = answers[question.id];
+
+                if (question.question_type === 'checkbox') {
+                    const selectedOptionIds = Array.isArray(rawAnswer) ? rawAnswer : [];
+
+                    return selectedOptionIds.map((selectedOptionId) => ({
+                        question_id: question.id,
+                        option_id: parseInt(selectedOptionId, 10),
+                    }));
                 }
 
-                return answer;
+                if (question.question_type === 'multiple_choice') {
+                    return rawAnswer
+                        ? [{ question_id: question.id, option_id: parseInt(rawAnswer, 10) }]
+                        : [];
+                }
+
+                if (question.question_type === 'rating' || question.question_type === 'text') {
+                    const answerText = String(rawAnswer || '').trim();
+                    return answerText ? [{ question_id: question.id, answer_text: answerText }] : [];
+                }
+
+                return [];
             });
 
             await responseService.submitResponse(parseInt(id), answersArray);
@@ -94,25 +165,37 @@ const TakeSurveyPage = () => {
 
     return (
         <div className="container mt-4">
-            <Link to={`/surveys/${id}`} style={{ color: '#003594', textDecoration: 'none' }}>
+            <div className="survey-form-shell">
+            <Link to={`/surveys/${id}`} className="back-link">
                 ← Back to Survey
             </Link>
 
-            <div className="card mt-3" style={{ maxWidth: '700px', margin: '24px auto 0' }}>
+            <div className="card survey-form-card">
                 <div className="card-body">
                     <h1>{survey?.title}</h1>
                     <p style={{ color: '#555', marginBottom: '24px' }}>Please answer all questions:</p>
+                    <div className="survey-meta-row">
+                        <span className="survey-meta-chip primary">
+                            {survey?.questions?.length || 0} Questions
+                        </span>
+                        <span className="survey-meta-chip accent">
+                            {survey?.questions?.filter((question) => question.is_required).length || 0} Required
+                        </span>
+                    </div>
 
                     {error && <div className="alert alert-danger">{error}</div>}
                     {success && <div className="alert alert-success">{success}</div>}
 
                     <form onSubmit={handleSubmit}>
                         {survey?.questions?.map((question, index) => (
-                            <div key={question.id} className="form-group" style={{ marginBottom: '24px' }}>
-                                <label style={{ fontWeight: 'bold', marginBottom: '12px' }}>
-                                    {index + 1}. {question.question_text}
-                                    {question.is_required && <span style={{ color: '#c0392b' }}> *</span>}
-                                </label>
+                            <div key={question.id} className="survey-question-card">
+                                <div className="survey-question-header">
+                                    <label className="survey-question-label">
+                                        {index + 1}. {question.question_text}
+                                        {question.is_required && <span style={{ color: '#c0392b' }}> *</span>}
+                                    </label>
+                                    <p className="survey-question-type">{getQuestionTypeLabel(question.question_type)}</p>
+                                </div>
 
                                 {question.question_type === 'text' && (
                                     <textarea
@@ -125,11 +208,11 @@ const TakeSurveyPage = () => {
                                 )}
 
                                 {question.question_type === 'rating' && (
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <div className="survey-rating-grid">
                                         {[1, 2, 3, 4, 5].map((rating) => (
                                             <label
                                                 key={rating}
-                                                style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                                                className={`survey-rating-option ${parseInt(answers[question.id]) === rating ? 'selected' : ''}`}
                                             >
                                                 <input
                                                     type="radio"
@@ -139,33 +222,42 @@ const TakeSurveyPage = () => {
                                                     onChange={() => handleAnswerChange(question.id, rating.toString())}
                                                     required={question.is_required}
                                                 />
-                                                {rating}
+                                                <span className="survey-rating-value">{rating}</span>
+                                                <span className="survey-rating-caption">out of 5</span>
                                             </label>
                                         ))}
                                     </div>
                                 )}
 
                                 {(question.question_type === 'multiple_choice' || question.question_type === 'checkbox') && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div className="survey-choice-group">
                                         {question.options?.map((option) => (
+                                            (() => {
+                                                const isSelected = question.question_type === 'checkbox'
+                                                    ? Array.isArray(answers[question.id]) && answers[question.id].includes(option.id.toString())
+                                                    : parseInt(answers[question.id]) === option.id;
+
+                                                return (
                                             <label
                                                 key={option.id}
-                                                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                className={`survey-choice-option ${isSelected ? 'selected' : ''}`}
                                             >
                                                 <input
                                                     type={question.question_type === 'checkbox' ? 'checkbox' : 'radio'}
                                                     name={`option-${question.id}`}
                                                     value={option.id}
-                                                    checked={
+                                                    checked={isSelected}
+                                                    onChange={() => (
                                                         question.question_type === 'checkbox'
-                                                            ? false
-                                                            : parseInt(answers[question.id]) === option.id
-                                                    }
-                                                    onChange={() => handleAnswerChange(question.id, option.id.toString())}
+                                                            ? handleCheckboxChange(question.id, option.id)
+                                                            : handleAnswerChange(question.id, option.id.toString())
+                                                    )}
                                                     required={question.is_required && question.question_type === 'multiple_choice'}
                                                 />
                                                 {option.option_text}
                                             </label>
+                                                );
+                                            })()
                                         ))}
                                     </div>
                                 )}
@@ -174,14 +266,14 @@ const TakeSurveyPage = () => {
 
                         <button
                             type="submit"
-                            className="btn btn-success btn-block"
+                            className="btn btn-success btn-block survey-submit-btn"
                             disabled={submitting}
-                            style={{ fontSize: '1.1rem', padding: '12px' }}
                         >
                             {submitting ? 'Submitting...' : 'Submit Survey'}
                         </button>
                     </form>
                 </div>
+            </div>
             </div>
         </div>
     );

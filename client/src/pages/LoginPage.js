@@ -49,18 +49,17 @@ const LoginPage = () => {
                         {/* Header */}
                         
                         <div className="flex items-center justify-between mb-6">
-                            <div>
-
-                            </div>
-                            <h1 className="text-xl font-semibold flex items-center gap-2" style={{ color: '#003594' }}>
+                            <h1 className="text-xl font-semibold flex items-center gap-2" style={{ color: '#003594', marginBottom: 0 }}>
                                 Login
                             </h1>
 
                             <button
+                            type="button"
                             onClick={() => navigate('/')}
-                            style={{ backgroundColor: '#003594', color: '#FFFFFF', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                            className="btn btn-primary btn-sm"
+                            style={{ padding: '8px 14px' }}
                             >
-                            Exit
+                            Go Back
                             </button>
                         </div>
 
@@ -140,10 +139,10 @@ const LoginPage = () => {
                                 <strong style={{ color: '#003594' }}>Demo Credentials:</strong>
                             </p>
                             <p style={{ margin: '4px 0' }}>
-                                <strong style={{ color: '#003594' }}>Admin:</strong> admin@surveyapp.com
+                                <strong style={{ color: '#003594' }}>Admin:</strong> manojkumar@jnu.ac.in
                             </p>
                             <p style={{ margin: '4px 0' }}>
-                                Password: admin123
+                                Password: manoj123
                             </p>
                         </div>
 

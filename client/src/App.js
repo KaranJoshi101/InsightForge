@@ -12,6 +12,7 @@ import SurveysPage from './pages/SurveysPage';
 import SurveyDetailPage from './pages/SurveyDetailPage';
 import TakeSurveyPage from './pages/TakeSurveyPage';
 import ResponsesPage from './pages/ResponsesPage';
+import ResponseDetailPage from './pages/ResponseDetailPage';
 import ArticlesPage from './pages/ArticlesPage';
 import ArticleDetailPage from './pages/ArticleDetailPage';
 import ProfilePage from './pages/ProfilePage';
@@ -19,6 +20,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminArticlesPage from './pages/AdminArticlesPage';
 import AdminResponsesPage from './pages/AdminResponsesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AdminSurveysPage from './pages/AdminSurveysPage';
 import CreateSurveyPage from './pages/CreateSurveyPage';
 import SurveyAnalyticsPage from './pages/SurveyAnalyticsPage';
 import Navbar from './components/Navbar';
@@ -72,6 +74,14 @@ const AppContent = () => {
                         }
                     />
                     <Route
+                        path="/responses/:id"
+                        element={
+                            <ProtectedRoute>
+                                <ResponseDetailPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="/profile"
                         element={
                             <ProtectedRoute>
@@ -110,6 +120,14 @@ const AppContent = () => {
                         element={
                             <ProtectedRoute adminOnly>
                                 <AdminUsersPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/surveys"
+                        element={
+                            <ProtectedRoute adminOnly>
+                                <AdminSurveysPage />
                             </ProtectedRoute>
                         }
                     />

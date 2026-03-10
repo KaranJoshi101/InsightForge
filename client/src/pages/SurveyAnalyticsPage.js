@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import responseService from '../services/responseService';
+import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 ChartJS.register(
@@ -30,18 +31,32 @@ const SurveyAnalyticsPage = () => {
     const { id } = useParams();
     const [analytics, setAnalytics] = useState(null);
     const [demographics, setDemographics] = useState(null);
+    const [respondents, setRespondents] = useState([]);
+    const [respondentSearch, setRespondentSearch] = useState('');
+    const [selectedUser, setSelectedUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    const handleViewUser = async (userId) => {
+        try {
+            const response = await userService.getUserById(userId);
+            setSelectedUser(response.data.user);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to load user details');
+        }
+    };
 
     const fetchAnalytics = useCallback(async () => {
         try {
             setLoading(true);
-            const [analyticsRes, demographicsRes] = await Promise.all([
+            const [analyticsRes, demographicsRes, respondentsRes] = await Promise.all([
                 responseService.getSurveyAnalytics(id),
                 responseService.getSurveyDemographics(id),
+                responseService.getSurveyResponses(id, 1, 500),
             ]);
             setAnalytics(analyticsRes.data);
             setDemographics(demographicsRes.data);
+            setRespondents(respondentsRes.data.responses || []);
             setError('');
         } catch (err) {
             setError('Failed to load analytics');
@@ -280,7 +295,7 @@ const SurveyAnalyticsPage = () => {
         return (
             <div className="container mt-4">
                 <div className="alert alert-danger">{error}</div>
-                <Link to="/admin" className="btn btn-primary">Back to Admin</Link>
+                <Link to="/admin/surveys" className="btn btn-primary">Back to Manage Surveys</Link>
             </div>
         );
     }
@@ -289,21 +304,25 @@ const SurveyAnalyticsPage = () => {
         return null;
     }
 
+    const filteredRespondents = respondents.filter((respondent) => {
+        const query = respondentSearch.toLowerCase().trim();
+        if (!query) return true;
+
+        const userName = respondent.user_name?.toLowerCase() || '';
+        const userEmail = respondent.user_email?.toLowerCase() || '';
+
+        return userName.includes(query) || userEmail.includes(query);
+    });
+
     return (
         <div className="container mt-4">
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h1 style={{ margin: 0 }}>Analytics: {analytics.survey_title}</h1>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <Link to="/admin/responses" className="btn btn-secondary"
-                        style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-                        View Responses
-                    </Link>
-                    <Link to="/admin" className="btn btn-secondary"
-                        style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-                        Back to Admin
-                    </Link>
-                </div>
+                <Link to="/admin/surveys" className="btn btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+                    Back to Manage Surveys
+                </Link>
             </div>
 
             {/* Overview Stats */}
@@ -442,6 +461,181 @@ const SurveyAnalyticsPage = () => {
                         {question.question_type === 'text' && renderTextQuestion(question)}
                     </div>
                 ))
+            )}
+
+            {/* Respondents List */}
+            <div style={{ marginTop: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
+                    <h2 style={{ color: '#003594', margin: 0 }}>Respondents</h2>
+                    <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                        {filteredRespondents.length} of {respondents.length}
+                    </span>
+                </div>
+
+                <div className="card" style={{ marginBottom: '16px' }}>
+                    <div className="card-body">
+                        <input
+                            type="text"
+                            placeholder="Search respondents by name or email"
+                            value={respondentSearch}
+                            onChange={(e) => setRespondentSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="card">
+                    <div className="card-body">
+                        {filteredRespondents.length === 0 ? (
+                            <p style={{ color: '#666', textAlign: 'center', padding: '24px' }}>
+                                No respondents found
+                            </p>
+                        ) : (
+                            <div style={{ display: 'grid', gap: '12px' }}>
+                                {filteredRespondents.map((respondent, idx) => {
+                                    return (
+                                        <div
+                                            key={respondent.id}
+                                            style={{
+                                                border: '1px solid #dbe4f5',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                backgroundColor: '#f8fbff',
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <div>
+                                                    <p style={{ margin: 0, fontWeight: 'bold' }}>
+                                                        {idx + 1}. {respondent.user_name || 'Anonymous User'}
+                                                    </p>
+                                                    <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+                                                        {respondent.user_email || 'N/A'}
+                                                    </p>
+                                                    <p style={{ margin: '4px 0 0 0', color: '#555', fontSize: '0.9rem' }}>
+                                                        Submitted: {new Date(respondent.submitted_at).toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    {respondent.user_id && (
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-primary btn-sm"
+                                                            onClick={() => handleViewUser(respondent.user_id)}
+                                                        >
+                                                            View
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* User Detail Modal */}
+            {selectedUser && (
+                <div
+                    onClick={() => setSelectedUser(null)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 2000,
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            backgroundColor: 'white',
+                            borderRadius: '8px',
+                            padding: '32px',
+                            maxWidth: '500px',
+                            width: '90%',
+                            maxHeight: '80vh',
+                            overflowY: 'auto',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ margin: 0, color: '#003594' }}>User Profile</h2>
+                            <button
+                                onClick={() => setSelectedUser(null)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#666',
+                                    padding: '4px 8px',
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                            <span style={{
+                                backgroundColor: selectedUser.role === 'admin' ? '#e8f0fe' : '#E8E9EE',
+                                color: selectedUser.role === 'admin' ? '#003594' : '#555',
+                                padding: '4px 10px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold',
+                            }}>
+                                {selectedUser.role}
+                            </span>
+                            <span style={{
+                                backgroundColor: selectedUser.is_banned ? '#fde8e8' : '#e8f8f0',
+                                color: selectedUser.is_banned ? '#922b21' : '#1a6e42',
+                                padding: '4px 10px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold',
+                            }}>
+                                {selectedUser.is_banned ? 'Banned' : 'Active'}
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Name</p>
+                                <p style={{ margin: '4px 0 0 0', fontWeight: 'bold' }}>{selectedUser.name}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Email</p>
+                                <p style={{ margin: '4px 0 0 0', fontWeight: 'bold' }}>{selectedUser.email}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Age</p>
+                                <p style={{ margin: '4px 0 0 0' }}>{selectedUser.age || 'Not provided'}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Gender</p>
+                                <p style={{ margin: '4px 0 0 0' }}>{selectedUser.gender || 'Not provided'}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Phone</p>
+                                <p style={{ margin: '4px 0 0 0' }}>{selectedUser.phone || 'Not provided'}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Location</p>
+                                <p style={{ margin: '4px 0 0 0' }}>{selectedUser.location || 'Not provided'}</p>
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Bio</p>
+                                <p style={{ margin: '4px 0 0 0' }}>{selectedUser.bio || 'Not provided'}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: 0, color: '#888', fontSize: '0.8rem' }}>Member Since</p>
+                                <p style={{ margin: '4px 0 0 0' }}>{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

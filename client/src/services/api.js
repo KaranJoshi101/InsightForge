@@ -13,8 +13,12 @@ const api = axios.create({
 // Add token to requests
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const jwtLikePattern = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+    if (token && jwtLikePattern.test(token)) {
         config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
     }
     return config;
 });

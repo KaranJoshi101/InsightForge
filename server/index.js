@@ -1,7 +1,7 @@
 // Main Express Server
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Route imports
@@ -14,14 +14,49 @@ const userRoutes = require('./routes/users');
 // Middleware imports
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/requestLogger');
+const {
+  corsOptions,
+  globalRateLimit,
+  securityHeaders,
+} = require('./middleware/security');
 
 const app = express();
 
+const assertSecurityConfig = () => {
+  if (process.env.NODE_ENV !== 'production') {
+    return;
+  }
+
+  if (!process.env.CORS_ORIGINS && !process.env.CLIENT_URL) {
+    throw new Error('Set CORS_ORIGINS (or CLIENT_URL) in production');
+  }
+
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    throw new Error('Set a strong JWT_SECRET (>= 32 chars) in production');
+  }
+};
+
+assertSecurityConfig();
+
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.disable('x-powered-by');
+app.use(securityHeaders);
+app.use(globalRateLimit);
+app.use(require('cors')(corsOptions));
+const bodyLimit = process.env.NODE_ENV !== 'production' ? '50mb' : '100kb';
+app.use(express.json({ limit: bodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 app.use(requestLogger);
+app.use('/uploads', express.static(uploadsDir, {
+  index: false,
+  dotfiles: 'deny',
+  fallthrough: false,
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);

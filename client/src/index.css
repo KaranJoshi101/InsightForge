@@ -419,6 +419,471 @@ tr:hover td {
     font-size: 1.6rem;
 }
 
+/* Admin pages */
+.admin-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.admin-page-header p {
+    margin: 0;
+    color: #666;
+}
+
+.admin-page-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.admin-stat-card {
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+}
+
+.admin-stat-card p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.admin-stat-card h2 {
+    margin: 8px 0 0 0;
+}
+
+.admin-stat-card.users {
+    background-color: #e8f0fe;
+    border-left-color: #003594;
+}
+
+.admin-stat-card.surveys {
+    background-color: #e8f8f0;
+    border-left-color: #27ae60;
+}
+
+.admin-stat-card.responses {
+    background-color: #fff8e1;
+    border-left-color: #FFB81C;
+}
+
+.admin-stat-card.banned {
+    background-color: #fde8e8;
+    border-left-color: #c0392b;
+}
+
+.admin-chart-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.admin-management-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+}
+
+.admin-management-link {
+    text-decoration: none;
+    border: 1px solid #dbe4f5;
+    border-radius: 10px;
+    padding: 14px 16px;
+    background-color: #f8fbff;
+    color: #003594;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-management-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 53, 148, 0.08);
+    border-color: #c5d5f2;
+}
+
+.admin-management-link strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.admin-management-link span {
+    color: #5f6b7a;
+    font-size: 0.9rem;
+}
+
+.admin-chip-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.admin-chip.total {
+    background-color: #e8f0fe;
+    color: #003594;
+}
+
+.admin-chip.published {
+    background-color: #e8f8f0;
+    color: #1a6e42;
+}
+
+.admin-chip.draft {
+    background-color: #fff8e1;
+    color: #8a6d00;
+}
+
+.admin-table-card {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table thead tr {
+    background-color: #f7f9fd;
+}
+
+.admin-actions-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+@media (max-width: 1024px) {
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .admin-page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-page-actions {
+        width: 100%;
+    }
+
+    .admin-page-actions .btn {
+        flex: 1 1 180px;
+        text-align: center;
+    }
+
+    .admin-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-management-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-page-actions {
+        flex-direction: column;
+    }
+
+    .admin-page-actions .btn {
+        width: 100%;
+    }
+
+    .card-body {
+        padding: 18px;
+    }
+}
+
+/* Survey taking */
+.survey-form-shell {
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+.survey-form-card {
+    margin: 24px auto 0;
+}
+
+.survey-meta-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.survey-meta-chip {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.survey-meta-chip.primary {
+    background-color: #e8f0fe;
+    color: #003594;
+}
+
+.survey-meta-chip.accent {
+    background-color: #fff8e1;
+    color: #8a6d00;
+}
+
+.survey-question-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+}
+
+.survey-question-header {
+    margin-bottom: 14px;
+}
+
+.survey-question-label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #1d2a3a;
+}
+
+.survey-question-type {
+    color: #667085;
+    font-size: 0.88rem;
+}
+
+.survey-rating-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.survey-choice-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.survey-choice-option,
+.survey-rating-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #d7dfeb;
+    border-radius: 10px;
+    background-color: #ffffff;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.survey-choice-option:hover,
+.survey-rating-option:hover {
+    border-color: #9eb8e8;
+    box-shadow: 0 6px 16px rgba(0, 53, 148, 0.08);
+}
+
+.survey-choice-option.selected,
+.survey-rating-option.selected {
+    border-color: #003594;
+    background-color: #f4f8ff;
+}
+
+.survey-choice-option input,
+.survey-rating-option input {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+}
+
+.survey-rating-option {
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 72px;
+}
+
+.survey-rating-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #003594;
+    line-height: 1;
+}
+
+.survey-rating-caption {
+    font-size: 0.8rem;
+    color: #667085;
+}
+
+.survey-submit-btn {
+    font-size: 1.05rem;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.responses-shell {
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.responses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.responses-header p {
+    margin: 6px 0 0 0;
+    color: #555;
+}
+
+.response-list {
+    display: grid;
+    gap: 14px;
+}
+
+.response-list-card {
+    border: 1px solid #dbe4f5;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    padding: 18px;
+}
+
+.response-list-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.response-list-title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #003594;
+    font-weight: 700;
+}
+
+.response-list-meta {
+    color: #667085;
+    font-size: 0.9rem;
+}
+
+.response-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #e8f8f0;
+    color: #1a6e42;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.response-list-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.response-answer-box {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background-color: #f8fbff;
+    border: 1px solid #dbe4f5;
+    color: #243447;
+}
+
+@media (max-width: 1024px) {
+    .survey-form-shell {
+        max-width: 760px;
+    }
+}
+
+@media (max-width: 768px) {
+    .survey-question-card {
+        padding: 16px;
+    }
+
+    .survey-rating-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .responses-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .response-list-top {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .survey-form-shell {
+        max-width: 100%;
+    }
+
+    .survey-rating-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .survey-choice-option,
+    .survey-rating-option {
+        padding: 12px;
+    }
+
+    .survey-submit-btn {
+        width: 100%;
+    }
+
+    .response-list-card {
+        padding: 16px;
+    }
+
+    .response-list-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
 .page-header p {
     color: rgba(255, 255, 255, 0.8);
     margin: 4px 0 0 0;

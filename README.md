@@ -26,6 +26,22 @@ survey-app/
   docs/        Project documentation
 ```
 
+## Image Storage
+
+Use two image locations depending on the use case:
+
+- Static frontend assets (landing/profile/fixed article visuals):
+  `client/public/static/images/...`
+- Runtime article uploads (admin-managed):
+  `server/uploads/articles/...`
+
+Public URL patterns:
+
+- Frontend static: `/static/images/<subfolder>/<file-name>`
+- Backend uploads: `http://localhost:5000/uploads/articles/<file-name>`
+
+Details and examples: `docs/IMAGE_STORAGE.md`
+
 ## Prerequisites
 
 - Node.js 18+

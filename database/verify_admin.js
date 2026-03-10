@@ -53,7 +53,7 @@ const verify = async () => {
         
         console.log('\n' + '='.repeat(60));
         console.log('\n✅ Configuration verified successfully!');
-        console.log('   Only Sarah Chen (admin) can create surveys and publish articles.\n');
+        console.log('   Only Manoj Kumar (admin) can create surveys and publish articles.\n');
         
         await pool.end();
     } catch (err) {

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const AdminResponsesPage = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [surveys, setSurveys] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -37,11 +38,15 @@ const AdminResponsesPage = () => {
     }, [fetchSurveys]);
 
     // Fetch responses when survey is selected
-    const handleSelectSurvey = async (survey) => {
+    const handleSelectSurvey = useCallback(async (survey, syncUrl = true) => {
         setSelectedSurvey(survey);
         setSearchQuery('');
         setLoadingResponses(true);
         setError('');
+
+        if (syncUrl) {
+            setSearchParams({ surveyId: String(survey.id) });
+        }
 
         try {
             // Fetch responses
@@ -62,7 +67,24 @@ const AdminResponsesPage = () => {
         } finally {
             setLoadingResponses(false);
         }
-    };
+    }, [setSearchParams]);
+
+    useEffect(() => {
+        const surveyIdParam = parseInt(searchParams.get('surveyId') || '', 10);
+
+        if (!surveyIdParam || surveys.length === 0) {
+            return;
+        }
+
+        if (selectedSurvey?.id === surveyIdParam) {
+            return;
+        }
+
+        const matchedSurvey = surveys.find((survey) => survey.id === surveyIdParam);
+        if (matchedSurvey) {
+            handleSelectSurvey(matchedSurvey, false);
+        }
+    }, [searchParams, surveys, selectedSurvey, handleSelectSurvey]);
 
     // Handle search and filter
     useEffect(() => {
@@ -119,8 +141,8 @@ const AdminResponsesPage = () => {
         <div className="container mt-4">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h1 style={{ color: '#003594' }}>Survey Responses & Analytics</h1>
-                <Link to="/admin" className="btn btn-secondary">
-                    ← Back to Admin
+                <Link to="/admin/surveys" className="btn btn-secondary">
+                    ← Back to Manage Surveys
                 </Link>
             </div>
 

@@ -10,17 +10,19 @@ const {
     getAdminArticles
 } = require('../controllers/articleController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { validateRequest } = require('../middleware/validateRequest');
+const { idParam, paginationQuery, articleWriteValidation } = require('../middleware/routeValidators');
 
 // Public routes
-router.get('/', getArticles);
+router.get('/', paginationQuery, validateRequest, getArticles);
 
 // Admin routes (protected) - must come before /:id to avoid route conflicts
-router.get('/admin/my-articles', authenticate, authorize, getAdminArticles);
-router.post('/', authenticate, authorize, createArticle);
-router.put('/:id', authenticate, authorize, updateArticle);
-router.delete('/:id', authenticate, authorize, deleteArticle);
+router.get('/admin/my-articles', authenticate, authorize, paginationQuery, validateRequest, getAdminArticles);
+router.post('/', authenticate, authorize, articleWriteValidation, validateRequest, createArticle);
+router.put('/:id', authenticate, authorize, idParam('id'), articleWriteValidation, validateRequest, updateArticle);
+router.delete('/:id', authenticate, authorize, idParam('id'), validateRequest, deleteArticle);
 
 // Public parameterized route (must be last)
-router.get('/:id', getArticleById);
+router.get('/:id', idParam('id'), validateRequest, getArticleById);
 
 module.exports = router;

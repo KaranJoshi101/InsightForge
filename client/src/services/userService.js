@@ -16,6 +16,10 @@ const userService = {
         return api.get(url);
     },
 
+    // Get a single user (admin)
+    getUserById: (id) =>
+        api.get(`/users/${id}`),
+
     // Ban user (admin)
     banUser: (id) =>
         api.put(`/users/${id}/ban`),

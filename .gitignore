@@ -37,3 +37,18 @@ Thumbs.db
 *.seed
 *.tmp
 tmp/
+
+# Uploaded user content (keep directory structure via .gitkeep)
+server/uploads/articles/*
+!server/uploads/articles/.gitkeep
+
+# AI / local context files
+context/
+
+# Editor temp files
+*.swp
+*.swo
+*~
+
+# Windows metadata
+desktop.ini

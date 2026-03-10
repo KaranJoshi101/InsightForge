@@ -26,53 +26,53 @@ const LandingPage = () => {
     const researchAreas = [
         {
             icon: '\u{1F4CA}',
-            title: 'Health Survey Research',
-            description: 'Designing and conducting large-scale health surveys to assess community well-being and inform public health policy.',
+            title: 'Biostatistics & Clinical Research',
+            description: 'Applying statistical methods to biomedical and clinical datasets for disease modeling, wound research, and healthcare outcomes. Experience includes clinical data analysis in pharmaceutical research and hospital-based studies.',
         },
         {
             icon: '\u{1F9EC}',
-            title: 'Biomedical Data Analytics',
-            description: 'Applying statistical and machine learning methods to biomedical datasets for pattern discovery and clinical insight.',
+            title: 'Health Economics & Public Health Studies',
+            description: 'Research focused on healthcare utilization, out-of-pocket expenditure, and policy evaluation using econometric and statistical methods to support evidence-based public health decision making.',
         },
         {
             icon: '\u{1F4BB}',
-            title: 'Digital Health Platforms',
-            description: 'Developing web-based tools and platforms for remote data collection, patient monitoring, and healthcare delivery.',
+            title: 'Applied Statistics & Data Analysis',
+            description: 'Using statistical and econometric techniques to analyze complex datasets across health sciences, economics, and social research with tools such as R, SPSS-AMOS, STATA, SAS, and Excel.',
         },
         {
             icon: '\u{1F30D}',
-            title: 'Global Health Informatics',
-            description: 'Leveraging information systems and technology to improve health outcomes in low-resource settings worldwide.',
+            title: 'Research Methodology & Quantitative Modeling',
+            description: 'Designing quantitative research frameworks and statistical models for interdisciplinary studies, supporting academic research, policy analysis, and evidence-based decision making.',
         },
     ];
 
     const publications = [
         {
-            title: 'A Comprehensive Framework for Community Health Assessment via Digital Surveys',
-            journal: 'Journal of Public Health Informatics',
+            title: 'Multistate Model of Chronic Wounds, Amputations, and Mortality: Cohort Study of a State-wide Registry',
+            journal: 'Annals of Surgery',
             year: '2025',
-            tags: ['Health Survey', 'Digital Tools'],
+            tags: ['Biostatistics', 'Clinical Research', 'Medical Data'],
             featured: true,
         },
         {
-            title: 'Machine Learning Approaches for Predicting Patient Outcomes in Rural Healthcare',
-            journal: 'International Conference on Biomedical Engineering',
-            year: '2024',
-            tags: ['Machine Learning', 'Healthcare'],
+            title: 'Urban Green Space Assessment Index (UGSAI): A Novel GIS-based Measure for Assessing Green Spaces in Delhi',
+            journal: 'Environment and Urbanization ASIA',
+            year: '2025',
+            tags: ['GIS Analysis', 'Environmental Statistics', 'Urban Studies'],
             featured: false,
         },
         {
-            title: 'Evaluating the Effectiveness of Mobile-based Health Interventions in Sub-Saharan Africa',
-            journal: 'The Lancet Digital Health',
+            title: 'Deficient Functional Wound Closure as Measured by Elevated Trans-Epidermal Water Loss Predicts Chronic Wound Recurrence',
+            journal: 'Scientific Reports (Nature)',
             year: '2024',
-            tags: ['Mobile Health', 'Global Health'],
+            tags: ['Clinical Research', 'Biostatistics', 'Healthcare'],
             featured: false,
         },
         {
-            title: 'Privacy-Preserving Methods for Large-Scale Medical Survey Data',
-            journal: 'IEEE Transactions on Information Forensics and Security',
+            title: 'Utilisation and Out-of-Pocket Expenditure for AYUSH Outpatient Care among Older Adults in India',
+            journal: 'Chettinad Health City Medical Journal',
             year: '2023',
-            tags: ['Privacy', 'Data Security'],
+            tags: ['Health Economics', 'Public Health', 'Healthcare Policy'],
             featured: false,
         },
     ];
@@ -103,6 +103,8 @@ const LandingPage = () => {
         { label: 'Digital Health Workshop', placeholder: '\u{1F4BB}' },
         { label: 'Global Health Summit Panel', placeholder: '\u{1F30D}' },
     ];
+
+    const adminProfileImage = '/static/images/profilePic.jpg';
 
     return (
         <div className="academic-landing">
@@ -159,9 +161,9 @@ const LandingPage = () => {
             {/* ===== HERO ===== */}
             <section className="acad-hero" id="hero">
                 <div className="acad-hero-content">
-                    <p className="hero-role">Professor of Health Informatics</p>
-                    <h1>Dr. Admin Name</h1>
-                    <p className="hero-institution">Department of Health Sciences &mdash; University of Research Excellence</p>
+                    <p className="hero-role">Assistant Professor - Applied Statistics & Health Economics</p>
+                    <h1>Manoj Kumar</h1>
+                    <p className="hero-institution">Centre for Economic Studies and Planning, School of Social Sciences, JNU</p>
                     <p className="hero-tagline">
                         Advancing health outcomes through innovative digital survey platforms,
                         data-driven research, and community-centered technology solutions.
@@ -190,40 +192,50 @@ const LandingPage = () => {
                 <div className="acad-container">
                     <div className="acad-about-grid">
                         <div className="acad-about-photo">
-                            <div className="photo-placeholder">{'\u{1F464}'}</div>
+                            <img
+                                src={adminProfileImage}
+                                alt="Dr. Manoj Kumar"
+                                loading="lazy"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const placeholder = e.currentTarget.nextElementSibling;
+                                    if (placeholder) {
+                                        placeholder.style.display = 'flex';
+                                    }
+                                }}
+                            />
+                            <div className="photo-placeholder" style={{ display: 'none' }}>{'\u{1F464}'}</div>
                         </div>
                         <div className="acad-about-info">
-                            <h2>Dr. Admin Name</h2>
-                            <p className="about-role">Professor of Health Informatics</p>
-                            <p className="about-institution">University of Research Excellence</p>
+                            <h2>Dr. Manoj Kumar</h2>
+                            <p className="about-role">Assistant Professor – Applied Statistics & Health Economics</p>
+                            <p className="about-institution">Centre for Economic Studies and Planning School of Social Sciences, Jawaharlal Nehru University (JNU)</p>
                             <hr className="acad-gold-divider" />
                             <p className="about-bio">
-                                Dr. Admin Name is a distinguished researcher and academic with over 15 years of
-                                experience in health informatics, digital survey design, and community health assessment.
-                                Their work focuses on leveraging technology to bridge gaps in healthcare delivery
-                                and empower communities through data-driven insights.
+                               Dr. Manoj Kumar is an accomplished statistician and researcher specializing in biostatistics, health economics, applied statistics, and data-driven research methodologies. With extensive academic and industry experience across universities, research institutions, and pharmaceutical organizations, his work focuses on applying advanced statistical and econometric methods to healthcare, clinical research, and policy analysis.
                             </p>
                             <p className="about-bio">
-                                With a portfolio of peer-reviewed publications and international collaborations,
-                                Dr. Name has been recognized for pioneering digital health survey methodologies
-                                that have been adopted by organizations across three continents.
+                                Currently serving as an Assistant Professor at the Centre for Economic Studies and Planning (CESP), JNU, and a Postdoctoral Associate in Biostatistics and Health Economics at the University of Pittsburgh, Dr. Kumar integrates statistical modeling, health data analytics, and research methodology to support evidence-based decision making in public health and economic policy.ve been adopted by organizations across three continents.
+                            </p>
+                            <p className="about-bio">
+                                His interdisciplinary research combines statistical modeling, biostatistics, econometrics, and computational analysis to address complex challenges in healthcare systems, clinical trials, environmental studies, and social science research. Through international collaborations and peer-reviewed publications, he contributes to advancing quantitative research methods in both academic and applied settings.
                             </p>
                             <ul className="about-details">
                                 <li>
                                     <span className="detail-icon">{'\u{2726}'}</span>
-                                    <span>15+ Years of Research Experience</span>
+                                    <span>Postdoctoral Research – University of Pittsburgh (Biostatistics & Health Economics)</span>
                                 </li>
                                 <li>
                                     <span className="detail-icon">{'\u{2726}'}</span>
-                                    <span>50+ Peer-Reviewed Publications</span>
+                                    <span>Assistant Professor, CESP – Jawaharlal Nehru University</span>
                                 </li>
                                 <li>
                                     <span className="detail-icon">{'\u{2726}'}</span>
-                                    <span>Best Paper Award, GHIS 2024</span>
+                                    <span>Expertise in Biostatistics, Econometrics & Health Data Analysis</span>
                                 </li>
                                 <li>
                                     <span className="detail-icon">{'\u{2726}'}</span>
-                                    <span>WHO Digital Health Advisor</span>
+                                    <span>Research in Clinical Studies, Public Health & Applied Statistics</span>
                                 </li>
                             </ul>
                         </div>
@@ -262,8 +274,7 @@ const LandingPage = () => {
                     <div className="acad-section-header">
                         <h2>Publications</h2>
                         <p>
-                            Selected peer-reviewed articles, conference papers, and book chapters
-                            contributing to the fields of health informatics and digital health.
+                            Selected peer-reviewed research publications in biostatistics, health economics, and applied statistical analysis.
                         </p>
                     </div>
                     <div className="acad-pub-list">
@@ -355,7 +366,7 @@ const LandingPage = () => {
                                 <div className="contact-text">
                                     <h3>Email</h3>
                                     <p>
-                                        <a href="mailto:admin@university.edu">admin@university.edu</a>
+                                        <a href="mailto:manojkumar@jnu.ac.in">manojkumar@jnu.ac.in</a>
                                     </p>
                                 </div>
                             </div>
@@ -363,21 +374,30 @@ const LandingPage = () => {
                                 <div className="contact-icon">{'\u{1F3E2}'}</div>
                                 <div className="contact-text">
                                     <h3>Institution</h3>
-                                    <p>University of Research Excellence</p>
+                                    <p>Centre for Economic Studies and Planning (CESP)
+                                        School of Social Sciences
+                                        Jawaharlal Nehru University (JNU)
+                                    </p>
                                 </div>
                             </div>
                             <div className="acad-contact-item">
                                 <div className="contact-icon">{'\u{1F4CD}'}</div>
                                 <div className="contact-text">
                                     <h3>Office</h3>
-                                    <p>Room 412, Health Sciences Building<br />123 Academic Drive, Research City</p>
+                                    <p>Room No. 345, SSS-II <br></br>
+                                        Centre for Economic Studies and Planning
+                                        School of Social Sciences <br></br>
+                                        Jawaharlal Nehru University, New Delhi
+                                    </p>
                                 </div>
                             </div>
                             <div className="acad-contact-item">
                                 <div className="contact-icon">{'\u{260E}'}</div>
                                 <div className="contact-text">
                                     <h3>Phone</h3>
-                                    <p>+1 (555) 123-4567</p>
+                                    <p>Office: 26704145 <br></br>
+                                        Mobile: 9990346151
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -451,7 +471,7 @@ const LandingPage = () => {
                         <div>
                             <h4>Contact</h4>
                             <ul className="acad-footer-links">
-                                <li><a href="mailto:admin@university.edu">admin@university.edu</a></li>
+                                <li><a href="mailto:manojkumar@jnu.ac.in">manojkumar@jnu.ac.in</a></li>
                                 <li><button type="button" onClick={() => scrollToSection('media')}>Media &amp; Talks</button></li>
                                 <li><button type="button" onClick={() => scrollToSection('contact')}>Contact Info</button></li>
                                 <li><Link to="/login" style={{ color: 'inherit', textDecoration: 'none' }}>Login</Link></li>

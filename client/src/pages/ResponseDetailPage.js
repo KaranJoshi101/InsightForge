@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const getAnswerLabel = (answer) => {
     if (answer.question_type === 'checkbox' || answer.question_type === 'multiple_choice') {
@@ -45,10 +46,8 @@ const ResponseDetailPage = () => {
     if (error || !response) {
         return (
             <div className="container mt-4">
+                <BackLink to="/responses" label="Go Back" />
                 <div className="alert alert-danger">{error || 'Response not found'}</div>
-                <Link to="/responses" className="btn btn-primary">
-                    Back to My Responses
-                </Link>
             </div>
         );
     }
@@ -56,9 +55,7 @@ const ResponseDetailPage = () => {
     return (
         <div className="container mt-4">
             <div className="responses-shell">
-            <Link to="/responses" className="back-link">
-                ← Back to My Responses
-            </Link>
+            <BackLink to="/responses" label="Back to My Responses" />
 
             <div className="card survey-form-card">
                 <div className="card-body">

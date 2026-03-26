@@ -13,7 +13,7 @@ Everything is complete and ready to run!
 cd /d/softee/survey-app
 npm run server
 ```
-**Backend runs on**: http://localhost:5001
+**Backend runs on**: http://localhost:5000
 
 ### Step 2: Start Frontend Application
 ```bash
@@ -32,11 +32,11 @@ Open browser and go to: **http://localhost:3000**
 
 ```
 Admin Account:
-Email: admin@surveyapp.com
-Password: admin123
+Email: manojkumar@jnu.ac.in
+Password: manoj123
 
 Regular User:
-Email: john@example.com
+Email: marcus.j@healthcare.com
 Password: admin123
 ```
 
@@ -206,17 +206,17 @@ Password: admin123
 
 ## Environment Variables
 
-The `.env` file is already configured with:
+Use your local `.env` values (never commit secrets). Example:
 ```
 DB_HOST=localhost
 DB_PORT=5433
 DB_NAME=survey_app
 DB_USER=postgres
-DB_PASSWORD=@Joshi098!
-SERVER_PORT=5001
+DB_PASSWORD=your_postgres_password
+SERVER_PORT=5000
 NODE_ENV=development
-JWT_SECRET=your_jwt_secret_key
-REACT_APP_API_URL=http://localhost:5001/api
+JWT_SECRET=your_jwt_secret_key_change_this
+REACT_APP_API_URL=http://localhost:5000/api
 ```
 
 ---
@@ -262,14 +262,14 @@ REACT_APP_API_URL=http://localhost:5001/api
 
 ### Backend not starting?
 ```bash
-# Check if port 5001 is in use
+# Check if configured backend port is in use
 # Kill the process and try again
 taskkill /PID <process_id> /F
 npm run server
 ```
 
 ### Frontend not connecting?
-- Check backend is running on :5001
+- Check backend is running on configured API port (default :5000)
 - Check REACT_APP_API_URL in .env
 - Clear browser cache and reload
 
@@ -286,7 +286,7 @@ npm run server
 
 ## Testing Checklist
 
-- [ ] Backend server starts on port 5001
+- [ ] Backend server starts on configured port (default 5000)
 - [ ] Frontend starts on port 3000
 - [ ] Can register new user
 - [ ] Can login with demo credentials

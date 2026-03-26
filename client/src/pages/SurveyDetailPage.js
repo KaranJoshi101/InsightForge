@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import surveyService from '../services/surveyService';
+import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
+import BackLink from '../components/BackLink';
 
 const SurveyDetailPage = () => {
     const { id } = useParams();
@@ -11,12 +13,47 @@ const SurveyDetailPage = () => {
     const [survey, setSurvey] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+    const [submittedAt, setSubmittedAt] = useState(null);
+
+    const formatSubmittedAt = (value) => {
+        if (!value) {
+            return '';
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleString([], {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    };
 
     const fetchSurvey = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await surveyService.getSurveyById(id);
-            setSurvey(response.data.survey);
+            const [surveyResponse, userResponsesResponse] = await Promise.all([
+                surveyService.getSurveyById(id),
+                isAuthenticated ? responseService.getUserResponses(1, 200) : Promise.resolve({ data: { responses: [] } }),
+            ]);
+
+            const submittedSurveyIds = new Set(
+                (userResponsesResponse.data.responses || []).map((response) => Number(response.survey_id))
+            );
+
+            const currentSubmission = (userResponsesResponse.data.responses || []).find(
+                (response) => Number(response.survey_id) === parseInt(id, 10)
+            );
+
+            setSurvey(surveyResponse.data.survey);
+            setAlreadySubmitted(submittedSurveyIds.has(parseInt(id, 10)));
+            setSubmittedAt(currentSubmission?.submitted_at || null);
             setError('');
         } catch (err) {
             setError('Failed to load survey');
@@ -24,7 +61,7 @@ const SurveyDetailPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, isAuthenticated]);
 
     useEffect(() => {
         fetchSurvey();
@@ -37,19 +74,15 @@ const SurveyDetailPage = () => {
     if (error || !survey) {
         return (
             <div className="container mt-4">
+                <BackLink to="/surveys" label="Go Back" />
                 <div className="alert alert-danger">{error || 'Survey not found'}</div>
-                <Link to="/surveys" className="btn btn-primary">
-                    Back to Surveys
-                </Link>
             </div>
         );
     }
 
     return (
         <div className="container mt-4">
-            <Link to="/surveys" style={{ color: '#003594', textDecoration: 'none' }}>
-                ← Back to Surveys
-            </Link>
+            <BackLink to="/surveys" label="Back to Surveys" />
 
             <div className="card mt-3">
                 <div className="card-body">
@@ -57,6 +90,23 @@ const SurveyDetailPage = () => {
                     <p style={{ color: '#555', fontSize: '1.1rem', marginBottom: '24px' }}>
                         {survey.description}
                     </p>
+
+                    {alreadySubmitted && (
+                        <div
+                            style={{
+                                display: 'inline-block',
+                                marginBottom: '20px',
+                                padding: '8px 12px',
+                                backgroundColor: '#e8f8f0',
+                                color: '#1a6e42',
+                                borderRadius: '6px',
+                                fontSize: '0.95rem',
+                                fontWeight: 600,
+                            }}
+                        >
+                            Submitted on {formatSubmittedAt(submittedAt) || 'N/A'}
+                        </div>
+                    )}
 
                     <div style={{ marginBottom: '24px' }}>
                         <h3>Questions ({survey.questions?.length || 0})</h3>
@@ -88,13 +138,23 @@ const SurveyDetailPage = () => {
 
                     <div style={{ marginTop: '24px' }}>
                         {isAuthenticated ? (
-                            <button
-                                onClick={() => navigate(`/survey/${id}/take`)}
-                                className="btn btn-success"
-                                style={{ fontSize: '1.1rem', padding: '12px 24px' }}
-                            >
-                                Take Survey
-                            </button>
+                            alreadySubmitted ? (
+                                <button
+                                    disabled
+                                    className="btn btn-success"
+                                    style={{ fontSize: '1.1rem', padding: '12px 24px', opacity: 0.65 }}
+                                >
+                                    ✓ Already Submitted
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate(`/survey/${id}/take`)}
+                                    className="btn btn-success"
+                                    style={{ fontSize: '1.1rem', padding: '12px 24px' }}
+                                >
+                                    Take Survey
+                                </button>
+                            )
                         ) : (
                             <div className="alert alert-info">
                                 <p>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const TakeSurveyPage = () => {
     const { id } = useParams();
@@ -13,6 +14,7 @@ const TakeSurveyPage = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [answers, setAnswers] = useState({});
+    const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
     const getQuestionTypeLabel = (questionType) => {
         switch (questionType) {
@@ -23,7 +25,11 @@ const TakeSurveyPage = () => {
             case 'rating':
                 return 'Choose a rating';
             case 'text':
-                return 'Write your response';
+                return 'Write your response (multi-line)';
+            case 'text_only':
+                return 'Short text (letters and spaces only)';
+            case 'number_only':
+                return 'Numbers only';
             default:
                 return '';
         }
@@ -32,8 +38,17 @@ const TakeSurveyPage = () => {
     const fetchSurvey = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await surveyService.getSurveyById(id);
-            setSurvey(response.data.survey);
+            const [surveyResponse, userResponsesResponse] = await Promise.all([
+                surveyService.getSurveyById(id),
+                responseService.getUserResponses(1, 200),
+            ]);
+
+            const submittedSurveyIds = new Set(
+                (userResponsesResponse.data.responses || []).map((response) => Number(response.survey_id))
+            );
+
+            setSurvey(surveyResponse.data.survey);
+            setAlreadySubmitted(submittedSurveyIds.has(parseInt(id, 10)));
             setError('');
         } catch (err) {
             setError('Failed to load survey');
@@ -77,7 +92,9 @@ const TakeSurveyPage = () => {
 
             const value = answers[question.id];
 
-            if (question.question_type === 'text' && !String(value || '').trim()) {
+            if ((question.question_type === 'text'
+                || question.question_type === 'text_only'
+                || question.question_type === 'number_only') && !String(value || '').trim()) {
                 return `Please answer question ${question.order_index || ''}: ${question.question_text}`;
             }
 
@@ -88,6 +105,14 @@ const TakeSurveyPage = () => {
             if (question.question_type === 'checkbox' && (!Array.isArray(value) || value.length === 0)) {
                 return `Please select at least one option for question ${question.order_index || ''}: ${question.question_text}`;
             }
+
+            if (question.question_type === 'text_only' && value && !/^[A-Za-z\s]+$/.test(String(value).trim())) {
+                return `Question ${question.order_index || ''} accepts letters and spaces only`;
+            }
+
+            if (question.question_type === 'number_only' && value && Number.isNaN(Number(value))) {
+                return `Question ${question.order_index || ''} accepts numbers only`;
+            }
         }
 
         return '';
@@ -95,6 +120,12 @@ const TakeSurveyPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (alreadySubmitted) {
+            setError('You have already submitted this survey.');
+            return;
+        }
+
         setSubmitting(true);
         setError('');
         setSuccess('');
@@ -126,7 +157,12 @@ const TakeSurveyPage = () => {
                         : [];
                 }
 
-                if (question.question_type === 'rating' || question.question_type === 'text') {
+                if (
+                    question.question_type === 'rating'
+                    || question.question_type === 'text'
+                    || question.question_type === 'text_only'
+                    || question.question_type === 'number_only'
+                ) {
                     const answerText = String(rawAnswer || '').trim();
                     return answerText ? [{ question_id: question.id, answer_text: answerText }] : [];
                 }
@@ -135,6 +171,7 @@ const TakeSurveyPage = () => {
             });
 
             await responseService.submitResponse(parseInt(id), answersArray);
+            setAlreadySubmitted(true);
             setSuccess('Survey submitted successfully!');
             setTimeout(() => {
                 navigate('/responses');
@@ -142,6 +179,11 @@ const TakeSurveyPage = () => {
         } catch (err) {
             const errorMsg = err.response?.data?.error || 'Failed to submit survey';
             setError(errorMsg);
+
+            if (err.response?.status === 409) {
+                setAlreadySubmitted(true);
+            }
+
             console.error(err);
         } finally {
             setSubmitting(false);
@@ -155,10 +197,8 @@ const TakeSurveyPage = () => {
     if (error && !survey) {
         return (
             <div className="container mt-4">
+                <BackLink to="/surveys" label="Go Back" />
                 <div className="alert alert-danger">{error}</div>
-                <Link to="/surveys" className="btn btn-primary">
-                    Back to Surveys
-                </Link>
             </div>
         );
     }
@@ -166,9 +206,7 @@ const TakeSurveyPage = () => {
     return (
         <div className="container mt-4">
             <div className="survey-form-shell">
-            <Link to={`/surveys/${id}`} className="back-link">
-                ← Back to Survey
-            </Link>
+            <BackLink to={`/surveys/${id}`} label="Back to Survey" />
 
             <div className="card survey-form-card">
                 <div className="card-body">
@@ -204,6 +242,29 @@ const TakeSurveyPage = () => {
                                         placeholder="Enter your answer"
                                         rows="4"
                                         required={question.is_required}
+                                        disabled={alreadySubmitted || submitting}
+                                    />
+                                )}
+
+                                {question.question_type === 'text_only' && (
+                                    <input
+                                        type="text"
+                                        value={answers[question.id] || ''}
+                                        onChange={(e) => handleAnswerChange(question.id, e.target.value.replace(/[^A-Za-z\s]/g, ''))}
+                                        placeholder="Letters and spaces only"
+                                        required={question.is_required}
+                                        disabled={alreadySubmitted || submitting}
+                                    />
+                                )}
+
+                                {question.question_type === 'number_only' && (
+                                    <input
+                                        type="number"
+                                        value={answers[question.id] || ''}
+                                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                                        placeholder="Enter a number"
+                                        required={question.is_required}
+                                        disabled={alreadySubmitted || submitting}
                                     />
                                 )}
 
@@ -221,6 +282,7 @@ const TakeSurveyPage = () => {
                                                     checked={parseInt(answers[question.id]) === rating}
                                                     onChange={() => handleAnswerChange(question.id, rating.toString())}
                                                     required={question.is_required}
+                                                    disabled={alreadySubmitted || submitting}
                                                 />
                                                 <span className="survey-rating-value">{rating}</span>
                                                 <span className="survey-rating-caption">out of 5</span>
@@ -253,6 +315,7 @@ const TakeSurveyPage = () => {
                                                             : handleAnswerChange(question.id, option.id.toString())
                                                     )}
                                                     required={question.is_required && question.question_type === 'multiple_choice'}
+                                                    disabled={alreadySubmitted || submitting}
                                                 />
                                                 {option.option_text}
                                             </label>
@@ -267,9 +330,9 @@ const TakeSurveyPage = () => {
                         <button
                             type="submit"
                             className="btn btn-success btn-block survey-submit-btn"
-                            disabled={submitting}
+                            disabled={submitting || alreadySubmitted}
                         >
-                            {submitting ? 'Submitting...' : 'Submit Survey'}
+                            {alreadySubmitted ? '✓ Already Submitted' : (submitting ? 'Submitting...' : 'Submit Survey')}
                         </button>
                     </form>
                 </div>

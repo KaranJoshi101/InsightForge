@@ -155,6 +155,15 @@ const getDashboardStats = async (req, res, next) => {
             GROUP BY status
         `);
 
+        // Article publish status distribution (for doughnut chart)
+        const articleStatusDist = await pool.query(`
+            SELECT
+                CASE WHEN is_published THEN 'published' ELSE 'draft' END AS status,
+                COUNT(*)::int AS count
+            FROM articles
+            GROUP BY is_published
+        `);
+
         // Summary counts
         const totalUsers = await pool.query('SELECT COUNT(*)::int AS count FROM users');
         const totalSurveys = await pool.query('SELECT COUNT(*)::int AS count FROM surveys');
@@ -164,6 +173,7 @@ const getDashboardStats = async (req, res, next) => {
         res.json({
             responses_per_survey: responsesPerSurvey.rows,
             survey_status_distribution: surveyStatusDist.rows,
+            article_status_distribution: articleStatusDist.rows,
             summary: {
                 total_users: totalUsers.rows[0].count,
                 total_surveys: totalSurveys.rows[0].count,

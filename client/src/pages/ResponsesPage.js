@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const ResponsesPage = () => {
     const navigate = useNavigate();
@@ -39,6 +40,7 @@ const ResponsesPage = () => {
             <div className="responses-shell">
             <div className="responses-header">
                 <div>
+                    <BackLink to="/dashboard" label="Go Back" />
                     <h1 style={{ color: '#003594', marginBottom: 0 }}>My Survey Responses</h1>
                     <p>Review the surveys you have already completed.</p>
                 </div>
@@ -49,13 +51,7 @@ const ResponsesPage = () => {
                             <span className="survey-meta-chip accent">Page {page} of {totalPages || 1}</span>
                         </div>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => navigate('/dashboard')}
-                        className="btn btn-secondary"
-                    >
-                        Back to Dashboard
-                    </button>
+                    
                 </div>
             </div>
 

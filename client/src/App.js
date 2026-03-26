@@ -15,12 +15,17 @@ import ResponsesPage from './pages/ResponsesPage';
 import ResponseDetailPage from './pages/ResponseDetailPage';
 import ArticlesPage from './pages/ArticlesPage';
 import ArticleDetailPage from './pages/ArticleDetailPage';
+import TrainingPage from './pages/TrainingPage';
 import ProfilePage from './pages/ProfilePage';
+import MediaPage from './pages/MediaPage';
+import MediaDetailPage from './pages/MediaDetailPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminArticlesPage from './pages/AdminArticlesPage';
 import AdminResponsesPage from './pages/AdminResponsesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminSurveysPage from './pages/AdminSurveysPage';
+import AdminTrainingPage from './pages/AdminTrainingPage';
+import AdminMediaPage from './pages/AdminMediaPage';
 import CreateSurveyPage from './pages/CreateSurveyPage';
 import SurveyAnalyticsPage from './pages/SurveyAnalyticsPage';
 import Navbar from './components/Navbar';
@@ -28,7 +33,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 
 const AppContent = () => {
-    const { loading, isAuthenticated } = useAuth();
+    const { loading } = useAuth();
 
     if (loading) {
         return <LoadingSpinner />;
@@ -36,8 +41,8 @@ const AppContent = () => {
 
     return (
         <>
-            {isAuthenticated && <Navbar />}
-            <main style={{ minHeight: isAuthenticated ? 'calc(100vh - 60px)' : 'auto' }}>
+            <Navbar />
+            <main style={{ minHeight: 'calc(100vh - 60px)', paddingBottom: '32px' }}>
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={<LandingPage />} />
@@ -45,6 +50,7 @@ const AppContent = () => {
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/articles" element={<ArticlesPage />} />
                     <Route path="/articles/:id" element={<ArticleDetailPage />} />
+                    <Route path="/training" element={<TrainingPage />} />
                     <Route path="/surveys" element={<SurveysPage />} />
                     <Route path="/surveys/:id" element={<SurveyDetailPage />} />
 
@@ -86,6 +92,22 @@ const AppContent = () => {
                         element={
                             <ProtectedRoute>
                                 <ProfilePage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/media"
+                        element={
+                            <ProtectedRoute>
+                                <MediaPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/media/:id"
+                        element={
+                            <ProtectedRoute>
+                                <MediaDetailPage />
                             </ProtectedRoute>
                         }
                     />
@@ -152,6 +174,22 @@ const AppContent = () => {
                         element={
                             <ProtectedRoute adminOnly>
                                 <SurveyAnalyticsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/media"
+                        element={
+                            <ProtectedRoute adminOnly>
+                                <AdminMediaPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/training"
+                        element={
+                            <ProtectedRoute adminOnly>
+                                <AdminTrainingPage />
                             </ProtectedRoute>
                         }
                     />

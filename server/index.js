@@ -10,6 +10,8 @@ const surveyRoutes = require('./routes/surveys');
 const responseRoutes = require('./routes/responses');
 const articleRoutes = require('./routes/articles');
 const userRoutes = require('./routes/users');
+const mediaRoutes = require('./routes/media');
+const trainingRoutes = require('./routes/training');
 
 // Middleware imports
 const { errorHandler } = require('./middleware/errorHandler');
@@ -21,6 +23,14 @@ const {
 } = require('./middleware/security');
 
 const app = express();
+
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+};
 
 const assertSecurityConfig = () => {
   if (process.env.NODE_ENV !== 'production') {
@@ -45,6 +55,9 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Middleware
 app.disable('x-powered-by');
+if (parseBoolean(process.env.TRUST_PROXY, false)) {
+  app.set('trust proxy', 1);
+}
 app.use(securityHeaders);
 app.use(globalRateLimit);
 app.use(require('cors')(corsOptions));
@@ -64,6 +77,8 @@ app.use('/api/surveys', surveyRoutes);
 app.use('/api/responses', responseRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/training', trainingRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -85,6 +100,8 @@ app.get('/', (req, res) => {
             surveys: '/api/surveys',
             responses: '/api/responses',
             articles: '/api/articles',
+            media: '/api/media',
+            training: '/api/training',
         },
     });
 });
@@ -100,9 +117,12 @@ app.use((req, res) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-const PORT = process.env.SERVER_PORT || 5000;
+const PORT = Number(process.env.SERVER_PORT || 5000);
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+  throw new Error('SERVER_PORT must be a valid port number between 1 and 65535');
+}
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════════════╗
 ║     🚀 Survey Application API Server Started      ║
@@ -142,5 +162,26 @@ Articles:
 
     `);
 });
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Set SERVER_PORT to a free port or stop the process using it.`);
+    process.exit(1);
+  }
+
+  console.error('❌ Server failed to start:', err.message);
+  process.exit(1);
+});
+
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Closing HTTP server...`);
+  server.close(() => {
+    console.log('HTTP server closed. Exiting process.');
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 module.exports = app;

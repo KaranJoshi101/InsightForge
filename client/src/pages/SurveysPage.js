@@ -3,25 +3,57 @@ import { Link } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useAuth } from '../context/AuthContext';
+import BackLink from '../components/BackLink';
 
 const SurveysPage = () => {
+    const { isAuthenticated } = useAuth();
     const [surveys, setSurveys] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [submittedSurveys, setSubmittedSurveys] = useState(new Set());
+    const [submittedSurveys, setSubmittedSurveys] = useState(new Map());
+
+    const formatSubmittedAt = (submittedAt) => {
+        if (!submittedAt) {
+            return '';
+        }
+
+        const date = new Date(submittedAt);
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleString([], {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    };
 
     const fetchUserResponses = useCallback(async () => {
+        if (!isAuthenticated) return;
         try {
-            const response = await responseService.getUserResponses();
-            const surveyIds = response.data.responses.map(r => r.survey_id);
-            setSubmittedSurveys(new Set(surveyIds));
+            const response = await responseService.getUserResponses(1, 200);
+            const submissionMap = new Map();
+
+            response.data.responses.forEach((entry) => {
+                const surveyId = Number(entry.survey_id);
+
+                if (!submissionMap.has(surveyId)) {
+                    submissionMap.set(surveyId, entry.submitted_at || null);
+                }
+            });
+
+            setSubmittedSurveys(submissionMap);
         } catch (err) {
             // Silently fail if endpoint not available
             console.error('Failed to load user responses:', err);
         }
-    }, []);
+    }, [isAuthenticated]);
 
     const fetchSurveys = useCallback(async () => {
         try {
@@ -47,24 +79,12 @@ const SurveysPage = () => {
         return <LoadingSpinner fullScreen={false} />;
     }
 
+    const backTo = isAuthenticated ? '/dashboard' : '/';
+
     return (
         <div className="container mt-4">
-                    <div
-            style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-            }}
-        >
+            <BackLink to={backTo} label="Go Back" />
             <h1 style={{ margin: 0, color: '#003594' }}>Available Surveys</h1>
-
-            <Link
-                to="/"
-                className="btn btn-primary btn-sm"
-            >
-                Go Back
-            </Link>
-        </div>
             <p style={{ color: '#555', marginBottom: '24px' }}>
                 Explore and take surveys to share your feedback
             </p>
@@ -109,13 +129,28 @@ const SurveysPage = () => {
                                     </span>
                                 </p>
                                 {submittedSurveys.has(survey.id) ? (
-                                    <button
-                                        disabled
-                                        className="btn btn-success btn-block"
-                                        style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.6 }}
-                                    >
-                                        ✓ Submitted
-                                    </button>
+                                    <>
+                                        <button
+                                            disabled
+                                            className="btn btn-success btn-block"
+                                            style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.6 }}
+                                        >
+                                            ✓ Submitted
+                                        </button>
+                                        <div
+                                            style={{
+                                                marginTop: '10px',
+                                                fontSize: '0.85rem',
+                                                color: '#1a6e42',
+                                                backgroundColor: '#e8f8f0',
+                                                borderRadius: '6px',
+                                                padding: '6px 10px',
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            Submitted on {formatSubmittedAt(submittedSurveys.get(survey.id)) || 'N/A'}
+                                        </div>
+                                    </>
                                 ) : (
                                     <Link
                                         to={`/surveys/${survey.id}`}

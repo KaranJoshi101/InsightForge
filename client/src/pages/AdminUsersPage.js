@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const AdminUsersPage = () => {
     const [users, setUsers] = useState([]);
@@ -78,12 +78,8 @@ const AdminUsersPage = () => {
 
     return (
         <div className="container mt-4">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h1 style={{ color: '#003594' }}>Users Management</h1>
-                <Link to="/admin" className="btn btn-secondary">
-                    ← Back to Admin
-                </Link>
-            </div>
+            <BackLink to="/admin" label="Back to Admin" />
+            <h1 style={{ color: '#003594', marginBottom: '24px' }}>Users Management</h1>
 
             {error && <div className="alert alert-danger">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}

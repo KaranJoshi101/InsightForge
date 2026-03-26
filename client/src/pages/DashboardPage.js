@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { FaChartBar, FaNewspaper, FaCog } from 'react-icons/fa';
 
 const DashboardPage = () => {
     const { user, isAdmin } = useAuth();
@@ -19,7 +20,7 @@ const DashboardPage = () => {
                     gap: '20px',
                 }}
             >
-                <Link
+                {/* <Link
                     to="/surveys"
                     style={{ textDecoration: 'none', color: 'inherit' }}
                 >
@@ -28,7 +29,9 @@ const DashboardPage = () => {
                         onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
                     >
                         <div className="card-body">
-                            <h2 style={{ fontSize: '2.5rem', margin: '0 0 12px 0' }}>📋</h2>
+                            <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
+                                <FaClipboardList size={38} aria-hidden="true" />
+                            </div>
                             <h3 style={{ color: '#003594' }}>Take Surveys</h3>
                             <p style={{ color: '#555' }}>
                                 Participate in surveys and share your feedback
@@ -36,6 +39,7 @@ const DashboardPage = () => {
                         </div>
                     </div>
                 </Link>
+                */}
 
                 <Link
                     to="/responses"
@@ -46,7 +50,9 @@ const DashboardPage = () => {
                         onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
                     >
                         <div className="card-body">
-                            <h2 style={{ fontSize: '2.5rem', margin: '0 0 12px 0' }}>📊</h2>
+                            <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
+                                <FaChartBar size={38} aria-hidden="true" />
+                            </div>
                             <h3 style={{ color: '#003594' }}>My Responses</h3>
                             <p style={{ color: '#555' }}>
                                 View surveys you've already responded to
@@ -64,7 +70,9 @@ const DashboardPage = () => {
                         onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
                     >
                         <div className="card-body">
-                            <h2 style={{ fontSize: '2.5rem', margin: '0 0 12px 0' }}>📰</h2>
+                            <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
+                                <FaNewspaper size={38} aria-hidden="true" />
+                            </div>
                             <h3 style={{ color: '#003594' }}>Articles</h3>
                             <p style={{ color: '#555' }}>
                                 Read helpful articles and guides
@@ -83,7 +91,9 @@ const DashboardPage = () => {
                             onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
                         >
                             <div className="card-body">
-                                <h2 style={{ fontSize: '2.5rem', margin: '0 0 12px 0' }}>⚙️</h2>
+                                <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
+                                    <FaCog size={38} aria-hidden="true" />
+                                </div>
                                 <h3 style={{ color: '#003594' }}>Admin Panel</h3>
                                 <p style={{ color: '#555' }}>
                                     Manage surveys, articles and analytics

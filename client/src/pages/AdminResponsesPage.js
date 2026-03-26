@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { FaArrowRight } from 'react-icons/fa';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const AdminResponsesPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -139,12 +141,8 @@ const AdminResponsesPage = () => {
 
     return (
         <div className="container mt-4">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h1 style={{ color: '#003594' }}>Survey Responses & Analytics</h1>
-                <Link to="/admin/surveys" className="btn btn-secondary">
-                    ← Back to Manage Surveys
-                </Link>
-            </div>
+            <BackLink to="/admin/surveys" label="Back to Manage Surveys" />
+            <h1 style={{ color: '#003594' }}>Survey Responses & Analytics</h1>
 
             {error && <div className="alert alert-danger">{error}</div>}
 
@@ -261,7 +259,10 @@ const AdminResponsesPage = () => {
                                                 className="btn btn-primary"
                                                 style={{ padding: '8px 16px', fontSize: '0.9rem' }}
                                             >
-                                                View Full Analytics →
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                                    View Full Analytics
+                                                    <FaArrowRight size={12} aria-hidden="true" />
+                                                </span>
                                             </Link>
                                         </div>
                                     </div>

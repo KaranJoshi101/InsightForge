@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const ProfilePage = () => {
     const { updateUser } = useAuth();
@@ -79,7 +79,7 @@ const ProfilePage = () => {
             });
             const updatedUser = response.data.user;
             updateUser({ name: updatedUser.name });
-            setSuccess('Profile updated successfully!');
+            setSuccess('Profile saved successfully!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             const errorMsg = err.response?.data?.error || 'Failed to update profile';
@@ -95,15 +95,41 @@ const ProfilePage = () => {
 
     return (
         <div className="container mt-4">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h1 style={{ color: '#003594' }}>My Profile</h1>
-                <Link to="/dashboard" className="btn btn-secondary">
-                    ← Back to Dashboard
-                </Link>
-            </div>
+            <BackLink to="/dashboard" label="Back to Dashboard" />
+            <h1 style={{ color: '#003594' }}>My Profile</h1>
 
-            {error && <div className="alert alert-danger">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
+            {error && (
+                <div 
+                    className="alert alert-danger" 
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 9999,
+                        borderRadius: 0,
+                        margin: 0,
+                    }}
+                >
+                    {error}
+                </div>
+            )}
+            {success && (
+                <div 
+                    className="alert alert-success" 
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 9999,
+                        borderRadius: 0,
+                        margin: 0,
+                    }}
+                >
+                    {success}
+                </div>
+            )}
 
             <div style={{ maxWidth: '700px', margin: '0 auto' }}>
                 {/* Read-only Info */}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const AdminSurveysPage = () => {
     const [surveys, setSurveys] = useState([]);
@@ -114,6 +115,7 @@ const AdminSurveysPage = () => {
 
     return (
         <div className="container mt-4">
+            <BackLink to="/admin" label="Back to Admin" />
             <div className="admin-page-header">
                 <div>
                     <h1 style={{ color: '#003594', marginBottom: '6px' }}>Manage Surveys</h1>
@@ -122,9 +124,6 @@ const AdminSurveysPage = () => {
                 <div className="admin-page-actions">
                     <Link to="/admin/surveys/create" className="btn btn-success">
                         + Create Survey
-                    </Link>
-                    <Link to="/admin" className="btn btn-secondary">
-                        Back to Admin
                     </Link>
                 </div>
             </div>

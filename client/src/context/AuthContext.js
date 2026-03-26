@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
         setUser(newUser);
     }, [user]);
 
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = typeof user?.role === 'string' && user.role.trim().toLowerCase() === 'admin';
     const isAuthenticated = !!token;
 
     return (

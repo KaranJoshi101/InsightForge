@@ -79,6 +79,37 @@ const surveyWriteValidation = [
         .optional()
         .isIn(['draft', 'published', 'closed'])
         .withMessage('status must be draft, published, or closed'),
+    body('submission_email_subject')
+        .optional({ nullable: true })
+        .isString()
+        .trim()
+        .isLength({ max: 255 })
+        .withMessage('submission_email_subject must be at most 255 characters'),
+    body('submission_email_body')
+        .optional({ nullable: true })
+        .isString()
+        .trim()
+        .isLength({ max: 10000 })
+        .withMessage('submission_email_body must be at most 10000 characters'),
+    body('submission_email_attachments')
+        .optional({ nullable: true })
+        .isArray({ max: 20 })
+        .withMessage('submission_email_attachments must be an array with at most 20 items'),
+    body('submission_email_attachments.*.name')
+        .optional({ nullable: true })
+        .isString()
+        .isLength({ max: 255 })
+        .withMessage('attachment name must be at most 255 characters'),
+    body('submission_email_attachments.*.path')
+        .optional({ nullable: true })
+        .isString()
+        .isLength({ max: 1000 })
+        .withMessage('attachment path must be at most 1000 characters'),
+    body('submission_email_attachments.*.url')
+        .optional({ nullable: true })
+        .isString()
+        .isLength({ max: 2000 })
+        .withMessage('attachment url must be at most 2000 characters'),
 ];
 
 const articleWriteValidation = [
@@ -92,8 +123,8 @@ const articleWriteValidation = [
         .optional()
         .isString()
         .trim()
-        .isLength({ min: 1, max: 200000 })
-        .withMessage('content must be between 1 and 200000 characters'),
+        .isLength({ min: 1, max: 2000000 })
+        .withMessage('content must be between 1 and 2000000 characters'),
     body('is_published')
         .optional()
         .isBoolean()

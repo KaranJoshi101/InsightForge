@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import articleService from '../services/articleService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
+import { useAuth } from '../context/AuthContext';
 
 const stripHtml = (html) => {
     const tmp = document.createElement('div');
@@ -10,6 +12,7 @@ const stripHtml = (html) => {
 };
 
 const ArticlesPage = () => {
+    const { isAuthenticated } = useAuth();
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -39,45 +42,30 @@ const ArticlesPage = () => {
         return <LoadingSpinner fullScreen={false} />;
     }
 
+    const backTo = isAuthenticated ? '/dashboard' : '/';
+
     return (
         <div className="container mt-4">
-            <div className="container mt-4"
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                }}
-            >
-            <div></div>
-            <h1 style={{ margin: 0, color: '#003594' }}>Published Articles</h1>
-            
-            <Link
-                to="/"
-                className="btn btn-primary btn-sm"
-            >
-                Go Back
-            </Link>
-            </div>
-
-
-            <p style={{ color: '#555', marginBottom: '24px', textAlign: 'center' }}>
+            <BackLink to={backTo} label="Back" />
+            <h1 style={{ margin: '16px 0 8px 0', color: '#003594' }}>Published Articles</h1>
+            <p style={{ color: '#555', marginBottom: '32px' }}>
                 Read helpful articles and guides
             </p>
 
             {error && <div className="alert alert-danger">{error}</div>}
 
             {articles.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div style={{ padding: '40px' }}>
                     <p style={{ fontSize: '1.1rem', color: '#666' }}>
                         No articles available yet.
                     </p>
                 </div>
             ) : (
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div>
                     {articles.map((article) => (
-                        <div key={article.id} className="card" style={{ marginBottom: '20px' }}>
+                        <div key={article.id} className="card" style={{ marginBottom: '24px' }}>
                             <div className="card-body">
-                                <h2>
+                                <h2 style={{ marginTop: '0', marginBottom: '12px' }}>
                                     <Link
                                         to={`/articles/${article.id}`}
                                         style={{ color: '#003594', textDecoration: 'none' }}
@@ -85,17 +73,17 @@ const ArticlesPage = () => {
                                         {article.title}
                                     </Link>
                                 </h2>
-                                <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                                <p style={{ color: '#888', fontSize: '0.9rem', margin: '8px 0' }}>
                                     By {article.author_name} on{' '}
                                     {new Date(article.created_at).toLocaleDateString()}
                                 </p>
-                                <p style={{ color: '#555', marginBottom: '16px' }}>
-                                    {stripHtml(article.content).substring(0, 150)}...
+                                <p style={{ color: '#555', marginBottom: '20px', lineHeight: '1.6' }}>
+                                    {stripHtml(article.content).substring(0, 200)}...
                                 </p>
                                 <Link
                                     to={`/articles/${article.id}`}
                                     className="btn btn-primary"
-                                    style={{ fontSize: '0.9rem' }}
+                                    style={{ fontSize: '0.95rem' }}
                                 >
                                     Read More
                                 </Link>

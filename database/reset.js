@@ -49,7 +49,15 @@ const resetDatabase = async () => {
         const migrations = [
             '01_initial_schema.sql',
             '02_add_is_banned.sql',
-            '03_add_profile_fields.sql'
+            '03_add_profile_fields.sql',
+            '04_add_question_type_filters.sql',
+            '05_add_media_posts.sql',
+            '06_add_media_details_survey.sql',
+            '07_refactor_media_to_use_article_id.sql',
+            '08_create_training_videos.sql',
+            '09_create_training_playlists.sql',
+            '10_add_youtube_playlist_url.sql',
+            '11_add_survey_submission_email_fields.sql'
         ];
 
         for (const migration of migrations) {

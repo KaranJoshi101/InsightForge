@@ -1,16 +1,47 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import articleService from '../services/articleService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import BackLink from '../components/BackLink';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
 
-const normalizeArticleImageUrls = (html) => {
+const normalizeLinkHref = (href) => {
+    if (!href) return href;
+    const trimmed = href.trim();
+    if (!trimmed) return trimmed;
+
+    if (/^(https?:|mailto:|tel:|#|\/)/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    return `https://${trimmed}`;
+};
+
+const normalizeArticleContent = (html) => {
     if (!html) return html;
 
-    // Rewrite root-relative uploads to backend origin so images resolve in dev and prod.
-    return html.replace(/src=(['"])\/uploads\//gi, `src=$1${API_ORIGIN}/uploads/`);
+    const container = document.createElement('div');
+    container.innerHTML = html;
+
+    container.querySelectorAll('img[src]').forEach((image) => {
+        const src = image.getAttribute('src');
+        if (src && src.startsWith('/uploads/')) {
+            image.setAttribute('src', `${API_ORIGIN}${src}`);
+        }
+    });
+
+    container.querySelectorAll('a[href]').forEach((anchor) => {
+        const normalizedHref = normalizeLinkHref(anchor.getAttribute('href'));
+        if (normalizedHref) {
+            anchor.setAttribute('href', normalizedHref);
+        }
+        anchor.setAttribute('target', '_blank');
+        anchor.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    return container.innerHTML;
 };
 
 const ArticleDetailPage = () => {
@@ -44,19 +75,15 @@ const ArticleDetailPage = () => {
     if (error || !article) {
         return (
             <div className="container mt-4">
+                <BackLink to="/articles" label="Go Back" />
                 <div className="alert alert-danger">{error || 'Article not found'}</div>
-                <Link to="/articles" className="btn btn-primary">
-                    Back to Articles
-                </Link>
             </div>
         );
     }
 
     return (
         <div className="container mt-4">
-            <Link to="/articles" style={{ color: '#003594', textDecoration: 'none' }}>
-                ← Back to Articles
-            </Link>
+            <BackLink to="/articles" label="Back to Articles" />
 
             <article className="card mt-3" style={{ maxWidth: '800px', margin: '24px auto 0' }}>
                 <div className="card-body">
@@ -75,7 +102,7 @@ const ArticleDetailPage = () => {
                             color: '#2B2B2B',
                             fontSize: '1.05rem',
                         }}
-                        dangerouslySetInnerHTML={{ __html: normalizeArticleImageUrls(article.content) }}
+                        dangerouslySetInnerHTML={{ __html: normalizeArticleContent(article.content) }}
                     />
                 </div>
             </article>

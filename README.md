@@ -42,6 +42,18 @@ Public URL patterns:
 
 Details and examples: `docs/IMAGE_STORAGE.md`
 
+## Master Project Specification
+
+For a single consolidated source containing architecture, use cases, DFD inputs, sequence flows, API inventory, database schema, and UML component mapping, use:
+
+`docs/MASTER_PROJECT_DIAGRAM_SPEC.md`
+
+## Deployment
+
+Deployment checklist and production setup are documented in:
+
+`DEPLOYMENT.md`
+
 ## Prerequisites
 
 - Node.js 18+
@@ -67,6 +79,11 @@ JWT_EXPIRE=7d
 
 REACT_APP_API_URL=http://localhost:5000/api
 ```
+
+For production, use:
+
+- `.env.production.example` as the template
+- `DEPLOYMENT.md` for full runbook
 
 ## Install Dependencies
 
@@ -122,6 +139,12 @@ App URLs:
 - `npm run dev` - Run server and client together
 - `npm run server` - Run backend only
 - `npm run client` - Run frontend only
+- `npm run build` - Build frontend for production
+- `npm run smoke` - Run post-deploy smoke checks (health/login/build artifact)
+- `npm start` - Start backend in production mode
+- `npm run pm2:start` - Start backend with PM2 using `ecosystem.config.js`
+- `npm run pm2:restart` - Restart PM2 app and refresh env
+- `npm run pm2:stop` - Stop PM2 app
 - `npm run db:init` - Initialize database
 - `npm run install-all` - Install root/server/client dependencies
 

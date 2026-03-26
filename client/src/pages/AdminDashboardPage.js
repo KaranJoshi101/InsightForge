@@ -3,21 +3,17 @@ import { Link } from 'react-router-dom';
 import {
     Chart as ChartJS,
     CategoryScale,
-    LinearScale,
-    BarElement,
     ArcElement,
     Title,
     Tooltip,
     Legend,
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Doughnut } from 'react-chartjs-2';
 import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 ChartJS.register(
     CategoryScale,
-    LinearScale,
-    BarElement,
     ArcElement,
     Title,
     Tooltip,
@@ -43,35 +39,6 @@ const AdminDashboardPage = () => {
         fetchStats();
     }, []);
 
-
-    // Chart data
-    const barChartData = dashboardStats ? {
-        labels: dashboardStats.responses_per_survey.map((s) =>
-            s.title.length > 20 ? s.title.substring(0, 20) + '...' : s.title
-        ),
-        datasets: [{
-            label: 'Number of Responses',
-            data: dashboardStats.responses_per_survey.map((s) => s.response_count),
-            backgroundColor: 'rgba(0, 53, 148, 0.6)',
-            borderColor: 'rgba(0, 53, 148, 1)',
-            borderWidth: 1,
-        }],
-    } : null;
-
-    const barChartOptions = {
-        responsive: true,
-        plugins: {
-            legend: { position: 'top' },
-            title: { display: true, text: 'Responses Per Survey' },
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: { stepSize: 1 },
-            },
-        },
-    };
-
     const doughnutChartData = dashboardStats ? {
         labels: dashboardStats.survey_status_distribution.map((s) =>
             s.status.charAt(0).toUpperCase() + s.status.slice(1)
@@ -85,11 +52,74 @@ const AdminDashboardPage = () => {
 
     const doughnutChartOptions = {
         responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
         plugins: {
             legend: { position: 'bottom' },
             title: { display: true, text: 'Survey Status Distribution' },
         },
     };
+
+    const articleStatusChartData = dashboardStats ? {
+        labels: dashboardStats.article_status_distribution.map((a) =>
+            a.status.charAt(0).toUpperCase() + a.status.slice(1)
+        ),
+        datasets: [{
+            data: dashboardStats.article_status_distribution.map((a) => a.count),
+            backgroundColor: ['#27ae60', '#FFB81C'],
+            borderWidth: 2,
+        }],
+    } : null;
+
+    const articleStatusChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: 'Article Status Distribution' },
+        },
+    };
+
+    const userStatusChartData = dashboardStats ? {
+        labels: ['Active', 'Banned'],
+        datasets: [{
+            data: [
+                Math.max(0, dashboardStats.summary.total_users - dashboardStats.summary.banned_users),
+                dashboardStats.summary.banned_users,
+            ],
+            backgroundColor: ['#27ae60', '#c0392b'],
+            borderWidth: 2,
+        }],
+    } : null;
+
+    const userStatusChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: 'User Status Distribution' },
+        },
+    };
+
+    const surveyCounts = dashboardStats
+        ? dashboardStats.survey_status_distribution.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.status === 'published') acc.published += item.count;
+            if (item.status === 'draft') acc.draft += item.count;
+            return acc;
+        }, { total: 0, published: 0, draft: 0 })
+        : { total: 0, published: 0, draft: 0 };
+
+    const articleCounts = dashboardStats
+        ? dashboardStats.article_status_distribution.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.status === 'published') acc.published += item.count;
+            if (item.status === 'draft') acc.draft += item.count;
+            return acc;
+        }, { total: 0, published: 0, draft: 0 })
+        : { total: 0, published: 0, draft: 0 };
 
     if (statsLoading) {
         return <LoadingSpinner fullScreen={false} />;
@@ -104,51 +134,62 @@ const AdminDashboardPage = () => {
                 </p>
             </div>
 
-            {/* Summary Stats */}
-            {dashboardStats && (
-                <div className="admin-stats-grid">
-                    <div className="admin-stat-card users">
-                        <p>Total Users</p>
-                        <h2 style={{ color: '#003594' }}>{dashboardStats.summary.total_users}</h2>
-                    </div>
-                    <div className="admin-stat-card surveys">
-                        <p>Total Surveys</p>
-                        <h2 style={{ color: '#27ae60' }}>{dashboardStats.summary.total_surveys}</h2>
-                    </div>
-                    <div className="admin-stat-card responses">
-                        <p>Total Responses</p>
-                        <h2 style={{ color: '#b8860b' }}>{dashboardStats.summary.total_responses}</h2>
-                    </div>
-                    <div className="admin-stat-card banned">
-                        <p>Banned Users</p>
-                        <h2 style={{ color: '#c0392b' }}>{dashboardStats.summary.banned_users}</h2>
-                    </div>
-                </div>
-            )}
-
             {/* Charts */}
             {dashboardStats && (
                 <div className="admin-chart-grid">
                     <div className="card">
                         <div className="card-body">
-                            <h2>Responses Per Survey</h2>
-                            {barChartData && barChartData.labels.length > 0 ? (
-                                <Bar data={barChartData} options={barChartOptions} />
+                            <h2>Survey Status</h2>
+                            <div className="admin-chip-row">
+                                <span className="admin-chip total">Total: {surveyCounts.total}</span>
+                                <span className="admin-chip published">Published: {surveyCounts.published}</span>
+                                <span className="admin-chip draft">Draft: {surveyCounts.draft}</span>
+                            </div>
+                            {doughnutChartData && doughnutChartData.labels.length > 0 ? (
+                                <div style={{ height: '340px' }}>
+                                    <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+                                </div>
                             ) : (
                                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
-                                    No survey data available yet
+                                    No surveys created yet
                                 </p>
                             )}
                         </div>
                     </div>
                     <div className="card">
                         <div className="card-body">
-                            <h2>Survey Status</h2>
-                            {doughnutChartData && doughnutChartData.labels.length > 0 ? (
-                                <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
+                            <h2>User Status</h2>
+                            <div className="admin-chip-row">
+                                <span className="admin-chip total">Total: {dashboardStats.summary.total_users}</span>
+                                <span className="admin-chip published">Active: {Math.max(0, dashboardStats.summary.total_users - dashboardStats.summary.banned_users)}</span>
+                                <span className="admin-chip draft">Banned: {dashboardStats.summary.banned_users}</span>
+                            </div>
+                            {userStatusChartData ? (
+                                <div style={{ height: '340px' }}>
+                                    <Doughnut data={userStatusChartData} options={userStatusChartOptions} />
+                                </div>
                             ) : (
                                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
-                                    No surveys created yet
+                                    No user data available yet
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="card">
+                        <div className="card-body">
+                            <h2>Article Status</h2>
+                            <div className="admin-chip-row">
+                                <span className="admin-chip total">Total: {articleCounts.total}</span>
+                                <span className="admin-chip published">Published: {articleCounts.published}</span>
+                                <span className="admin-chip draft">Draft: {articleCounts.draft}</span>
+                            </div>
+                            {articleStatusChartData && articleStatusChartData.labels.length > 0 ? (
+                                <div style={{ height: '340px' }}>
+                                    <Doughnut data={articleStatusChartData} options={articleStatusChartOptions} />
+                                </div>
+                            ) : (
+                                <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
+                                    No articles created yet
                                 </p>
                             )}
                         </div>
@@ -171,6 +212,14 @@ const AdminDashboardPage = () => {
                         <Link to="/admin/articles" className="admin-management-link">
                             <strong>Manage Articles</strong>
                             <span>Write, edit, publish, and retire content.</span>
+                        </Link>
+                        <Link to="/admin/media" className="admin-management-link">
+                            <strong>Manage Media</strong>
+                            <span>Create and curate media feed cards and linked content.</span>
+                        </Link>
+                        <Link to="/admin/training" className="admin-management-link">
+                            <strong>Manage Training Videos</strong>
+                            <span>Add YouTube lessons shown in the public training section.</span>
                         </Link>
                     </div>
                 </div>

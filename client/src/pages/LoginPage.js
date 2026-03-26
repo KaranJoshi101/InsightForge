@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import BackLink from '../components/BackLink';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -52,15 +53,9 @@ const LoginPage = () => {
                             <h1 className="text-xl font-semibold flex items-center gap-2" style={{ color: '#003594', marginBottom: 0 }}>
                                 Login
                             </h1>
-
-                            <button
-                            type="button"
-                            onClick={() => navigate('/')}
-                            className="btn btn-primary btn-sm"
-                            style={{ padding: '8px 14px' }}
-                            >
-                            Go Back
-                            </button>
+                        </div>
+                        <div style={{ marginBottom: '16px' }}>
+                            <BackLink to="/" label="Go Back" />
                         </div>
 
                         {error && (

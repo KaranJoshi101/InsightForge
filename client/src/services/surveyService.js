@@ -13,8 +13,12 @@ const surveyService = {
         api.get(`/surveys/${id}`),
 
     // Create survey (admin)
-    createSurvey: (title, description) =>
-        api.post('/surveys', { title, description }),
+    createSurvey: (titleOrPayload, description) => {
+        if (typeof titleOrPayload === 'object' && titleOrPayload !== null) {
+            return api.post('/surveys', titleOrPayload);
+        }
+        return api.post('/surveys', { title: titleOrPayload, description });
+    },
 
     // Update survey (admin)
     updateSurvey: (id, data) =>
@@ -40,9 +44,34 @@ const surveyService = {
             order_index,
         }),
 
+    // Update question (admin)
+    updateQuestion: (questionId, data) =>
+        api.put(`/surveys/questions/${questionId}`, data),
+
+    // Delete question (admin)
+    deleteQuestion: (questionId) =>
+        api.delete(`/surveys/questions/${questionId}`),
+
+    // Update option (admin)
+    updateOption: (optionId, data) =>
+        api.put(`/surveys/questions/options/${optionId}`, data),
+
     // Delete option from question (admin)
     deleteOption: (optionId) =>
         api.delete(`/surveys/questions/options/${optionId}`),
+
+    // Upload files used as survey submission email attachments (admin)
+    uploadSurveyEmailAttachments: (files) => {
+        const formData = new FormData();
+        Array.from(files || []).forEach((file) => {
+            formData.append('files', file);
+        });
+        return api.post('/surveys/email-attachments', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
 
     // Publish survey (admin)
     publishSurvey: (id) =>

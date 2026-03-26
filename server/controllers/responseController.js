@@ -1,6 +1,7 @@
 // Response Controller (Survey Responses and Answers)
 const pool = require('../config/database');
 const ExcelJS = require('exceljs');
+const { sendSurveySubmissionEmail } = require('../utils/mailer');
 
 // Submit survey response
 const submitResponse = async (req, res, next) => {
@@ -20,7 +21,13 @@ const submitResponse = async (req, res, next) => {
 
         // Check if survey exists
         const surveyResult = await client.query(
-            'SELECT id FROM surveys WHERE id = $1',
+            `SELECT
+                id,
+                title,
+                submission_email_subject,
+                submission_email_body,
+                submission_email_attachments
+             FROM surveys WHERE id = $1`,
             [survey_id]
         );
 
@@ -29,6 +36,8 @@ const submitResponse = async (req, res, next) => {
                 error: 'Survey not found',
             });
         }
+
+        const survey = surveyResult.rows[0];
 
         // Check if user already submitted this survey
         const existingResponse = await client.query(
@@ -50,9 +59,43 @@ const submitResponse = async (req, res, next) => {
 
         const response_id = responseResult.rows[0].id;
 
+        const userResult = await client.query(
+            'SELECT name, email FROM users WHERE id = $1',
+            [user_id]
+        );
+
+        const userProfile = userResult.rows[0] || {};
+
+        const questionsResult = await client.query(
+            'SELECT id, question_type FROM questions WHERE survey_id = $1',
+            [survey_id]
+        );
+        const questionTypeById = new Map(
+            questionsResult.rows.map((question) => [question.id, question.question_type])
+        );
+
         // Insert individual answers
         for (const answer of answers) {
             const { question_id, answer_text, option_id } = answer;
+            const questionType = questionTypeById.get(question_id);
+
+            if (!questionType) {
+                return res.status(400).json({
+                    error: `Invalid question_id: ${question_id}`,
+                });
+            }
+
+            if (questionType === 'text_only' && answer_text && !/^[A-Za-z\s]+$/.test(String(answer_text).trim())) {
+                return res.status(400).json({
+                    error: 'text_only questions accept letters and spaces only',
+                });
+            }
+
+            if (questionType === 'number_only' && answer_text && Number.isNaN(Number(answer_text))) {
+                return res.status(400).json({
+                    error: 'number_only questions accept numeric values only',
+                });
+            }
 
             await client.query(
                 'INSERT INTO answers (response_id, question_id, answer_text, option_id) VALUES ($1, $2, $3, $4)',
@@ -62,9 +105,32 @@ const submitResponse = async (req, res, next) => {
 
         await client.query('COMMIT');
 
+        let emailInfo = { sent: false, skipped: true, reason: 'Not attempted' };
+        if (userProfile.email) {
+            try {
+                emailInfo = await sendSurveySubmissionEmail({
+                    to: userProfile.email,
+                    userName: userProfile.name,
+                    surveyTitle: survey.title,
+                    submittedAt: new Date(),
+                    templateSubject: survey.submission_email_subject,
+                    templateBody: survey.submission_email_body,
+                    templateAttachments: survey.submission_email_attachments,
+                });
+            } catch (mailErr) {
+                emailInfo = {
+                    sent: false,
+                    skipped: false,
+                    reason: mailErr.message,
+                };
+                console.warn(`⚠️ Survey submission email failed for user ${user_id}: ${mailErr.message}`);
+            }
+        }
+
         res.status(201).json({
             message: 'Response submitted successfully',
             response_id,
+            email: emailInfo,
         });
     } catch (err) {
         await client.query('ROLLBACK');

@@ -1,27 +1,24 @@
 import React from 'react';
 
 const LoadingSpinner = ({ fullScreen = true }) => {
-    const style = fullScreen
+    const wrapperStyle = fullScreen
         ? {
+            minHeight: 'calc(100vh - 60px)',
             display: 'flex',
-            justifyContent: 'center',
             alignItems: 'center',
-            height: '100vh',
-            backgroundColor: '#E8E9EE',
+            justifyContent: 'center',
         }
         : {
+            width: '100%',
+            minHeight: '200px',
             display: 'flex',
-            justifyContent: 'center',
             alignItems: 'center',
-            padding: '40px',
+            justifyContent: 'center',
         };
 
     return (
-        <div style={style}>
-            <div style={{ textAlign: 'center' }}>
-                <div className="loading"></div>
-                <p style={{ marginTop: '20px', color: '#003594' }}>Loading...</p>
-            </div>
+        <div style={wrapperStyle}>
+            <div className="loading" aria-label="Loading" role="status" />
         </div>
     );
 };

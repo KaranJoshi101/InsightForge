@@ -90,6 +90,52 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const requiredTables = [
+      'users',
+      'surveys',
+      'questions',
+      'responses',
+      'answers',
+      'articles',
+      'signup_otp_verifications',
+    ];
+
+    const checks = await Promise.all(
+      requiredTables.map(async (tableName) => {
+        const result = await pool.query(
+          'SELECT to_regclass($1) AS table_name',
+          [`public.${tableName}`]
+        );
+
+        return {
+          table: tableName,
+          exists: Boolean(result.rows[0]?.table_name),
+        };
+      })
+    );
+
+    const missingTables = checks.filter((item) => !item.exists).map((item) => item.table);
+
+    res.status(missingTables.length ? 503 : 200).json({
+      status: missingTables.length ? 'DEGRADED' : 'OK',
+      database: process.env.DB_NAME,
+      host: process.env.DB_HOST,
+      checks,
+      missingTables,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Database health check failed',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
     res.json({
@@ -97,6 +143,7 @@ app.get('/', (req, res) => {
         version: '1.0.0',
         endpoints: {
             health: '/api/health',
+          databaseHealth: '/api/health/db',
             auth: '/api/auth',
             surveys: '/api/surveys',
             responses: '/api/responses',

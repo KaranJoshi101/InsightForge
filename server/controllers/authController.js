@@ -108,15 +108,18 @@ const requestRegisterOtp = async (req, res, next) => {
         );
 
         // Send email asynchronously (fire-and-forget) so user gets immediate response
-        // Email failures are logged to backend but don't block the user
-        sendSignupOtpEmail({
+        const emailResult = await sendSignupOtpEmail({
             to: safeEmail,
             userName: safeName,
             otpCode,
             expiresMinutes: OTP_EXPIRY_MINUTES,
-        }).catch((err) => {
-            console.error(`⚠️  OTP email send failed for ${safeEmail}:`, err.message);
         });
+
+        if (!emailResult.sent) {
+            return res.status(503).json({
+                error: 'Unable to deliver OTP email right now. Please try again in a moment.',
+            });
+        }
 
         res.json({
             message: 'OTP sent to your email',

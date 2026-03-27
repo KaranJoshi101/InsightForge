@@ -1,13 +1,8 @@
 const nodemailer = require('nodemailer');
-const sgMail = require('@sendgrid/mail');
 const fs = require('fs');
 const path = require('path');
 
-const hasSendGridConfig = () => {
-    return Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim());
-};
-
-const hasSmtpConfig = () => {
+const hasPrimarySmtpConfig = () => {
     return Boolean(
         process.env.SMTP_HOST
         && process.env.SMTP_PORT
@@ -17,35 +12,148 @@ const hasSmtpConfig = () => {
     );
 };
 
-const hasMailConfig = () => {
-    return hasSendGridConfig() || hasSmtpConfig();
+const hasFallbackSmtpConfig = () => {
+    return Boolean(
+        process.env.SMTP_FALLBACK_HOST
+        && process.env.SMTP_FALLBACK_PORT
+        && process.env.SMTP_FALLBACK_USER
+        && process.env.SMTP_FALLBACK_PASS
+        && process.env.SMTP_FALLBACK_FROM_EMAIL
+    );
 };
 
-const getTransporter = () => {
-    if (!hasSmtpConfig()) {
+const hasMailConfig = () => hasPrimarySmtpConfig() || hasFallbackSmtpConfig();
+
+const parseBoolean = (value, fallback = false) => {
+    if (value === undefined || value === null || value === '') {
+        return fallback;
+    }
+
+    return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+};
+
+const getSmtpTransportConfigs = () => {
+    const primaryHost = String(process.env.SMTP_HOST || '').trim();
+    const primaryPort = parseInt(process.env.SMTP_PORT, 10);
+    const primarySecure = parseBoolean(process.env.SMTP_SECURE, false);
+    const primaryUser = String(process.env.SMTP_USER || '').trim();
+    const primaryPass = process.env.SMTP_PASS;
+    const primaryFromEmail = String(process.env.SMTP_FROM_EMAIL || '').trim();
+    const primaryFromName = String(process.env.SMTP_FROM_NAME || '').trim();
+
+    const fallbackHost = String(process.env.SMTP_FALLBACK_HOST || '').trim();
+    const fallbackPort = parseInt(process.env.SMTP_FALLBACK_PORT || '', 10);
+    const fallbackSecure = parseBoolean(process.env.SMTP_FALLBACK_SECURE, !primarySecure);
+    const fallbackUser = String(process.env.SMTP_FALLBACK_USER || '').trim();
+    const fallbackPass = process.env.SMTP_FALLBACK_PASS;
+    const fallbackFromEmail = String(process.env.SMTP_FALLBACK_FROM_EMAIL || '').trim();
+    const fallbackFromName = String(process.env.SMTP_FALLBACK_FROM_NAME || '').trim();
+    const enableAutoFallback = !parseBoolean(process.env.SMTP_DISABLE_AUTO_FALLBACK, false);
+
+    const configs = [];
+
+    if (hasPrimarySmtpConfig()) {
+        configs.push({
+            host: primaryHost,
+            port: primaryPort,
+            secure: primarySecure,
+            user: primaryUser,
+            pass: primaryPass,
+            fromEmail: primaryFromEmail,
+            fromName: primaryFromName,
+            label: `primary:${primaryHost}:${primaryPort}`,
+        });
+    }
+
+    if (fallbackHost) {
+        const resolvedFallbackPort = !Number.isNaN(fallbackPort) && fallbackPort > 0 ? fallbackPort : primaryPort;
+        const resolvedFallbackUser = fallbackUser || primaryUser;
+        const resolvedFallbackPass = fallbackPass || primaryPass;
+        const resolvedFallbackFromEmail = fallbackFromEmail || primaryFromEmail;
+        const resolvedFallbackFromName = fallbackFromName || primaryFromName;
+
+        if (resolvedFallbackUser && resolvedFallbackPass && resolvedFallbackFromEmail) {
+            configs.push({
+                host: fallbackHost,
+                port: resolvedFallbackPort,
+                secure: fallbackSecure,
+                user: resolvedFallbackUser,
+                pass: resolvedFallbackPass,
+                fromEmail: resolvedFallbackFromEmail,
+                fromName: resolvedFallbackFromName,
+                label: `fallback:${fallbackHost}:${resolvedFallbackPort}`,
+            });
+        }
+    } else if (!Number.isNaN(fallbackPort) && fallbackPort > 0 && fallbackPort !== primaryPort) {
+        if (hasPrimarySmtpConfig()) {
+            configs.push({
+                host: primaryHost,
+                port: fallbackPort,
+                secure: fallbackSecure,
+                user: primaryUser,
+                pass: primaryPass,
+                fromEmail: primaryFromEmail,
+                fromName: primaryFromName,
+                label: `fallback:${primaryHost}:${fallbackPort}`,
+            });
+        }
+        return configs;
+    }
+
+    if (enableAutoFallback && hasPrimarySmtpConfig()) {
+        if (primaryPort === 587) {
+            configs.push({
+                host: primaryHost,
+                port: 465,
+                secure: true,
+                user: primaryUser,
+                pass: primaryPass,
+                fromEmail: primaryFromEmail,
+                fromName: primaryFromName,
+                label: `auto-fallback:${primaryHost}:465`,
+            });
+        } else if (primaryPort === 465) {
+            configs.push({
+                host: primaryHost,
+                port: 587,
+                secure: false,
+                user: primaryUser,
+                pass: primaryPass,
+                fromEmail: primaryFromEmail,
+                fromName: primaryFromName,
+                label: `auto-fallback:${primaryHost}:587`,
+            });
+        }
+    }
+
+    return configs;
+};
+
+const getTransporter = ({ host, port, secure, user, pass }) => {
+    if (!host || !port || !user || !pass) {
         return null;
     }
 
+    const ipFamily = parseInt(process.env.SMTP_IP_FAMILY || '4', 10);
+
     return nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT, 10),
-        secure: String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true',
+        host,
+        port,
+        secure,
+        requireTLS: !secure,
+        family: Number.isNaN(ipFamily) ? 4 : ipFamily,
         auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+            user,
+            pass,
+        },
+        tls: {
+            servername: host,
+            rejectUnauthorized: true,
+            minVersion: 'TLSv1.2',
         },
         connectionTimeout: 10000,
         socketTimeout: 10000,
     });
-};
-
-const initSendGrid = () => {
-    if (!hasSendGridConfig()) {
-        return null;
-    }
-
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    return sgMail;
 };
 
 const sendMailWithTimeout = async (transporter, mailOptions, timeoutMs = 15000) => {
@@ -60,21 +168,34 @@ const sendMailWithTimeout = async (transporter, mailOptions, timeoutMs = 15000) 
     ]);
 };
 
-const sendViaSendGrid = async (mailOptions, timeoutMs = 15000) => {
-    const sg = initSendGrid();
-    if (!sg) {
-        return null;
+const sendSmtpWithFallback = async (mailOptionsBuilder, timeoutMs = 15000) => {
+    const transportConfigs = getSmtpTransportConfigs();
+    const failures = [];
+
+    for (const config of transportConfigs) {
+        const transporter = getTransporter({
+            host: config.host,
+            port: config.port,
+            secure: config.secure,
+            user: config.user,
+            pass: config.pass,
+        });
+        if (!transporter) {
+            break;
+        }
+
+        const mailOptions = mailOptionsBuilder(config);
+
+        try {
+            await sendMailWithTimeout(transporter, mailOptions, timeoutMs);
+            return { host: config.host, port: config.port, secure: config.secure, label: config.label };
+        } catch (err) {
+            failures.push(`${config.label}:${err.message}`);
+            console.warn(`⚠️ SMTP attempt failed on ${config.label} (${config.secure ? 'secure' : 'starttls'}): ${err.message}`);
+        }
     }
 
-    return Promise.race([
-        sg.send(mailOptions),
-        new Promise((_, reject) =>
-            setTimeout(
-                () => reject(new Error(`SendGrid send timeout after ${timeoutMs}ms`)),
-                timeoutMs
-            )
-        ),
-    ]);
+    throw new Error(failures.join(' | ') || 'SMTP send failed with no transport attempts');
 };
 
 const normalizeAttachments = (rawAttachments) => {
@@ -177,79 +298,40 @@ const sendSurveySubmissionEmail = async ({
         return {
             sent: false,
             skipped: true,
-            reason: 'Email is not configured',
+            reason: 'SMTP is not configured',
         };
     }
 
-    const fromName = process.env.SMTP_FROM_NAME || 'Survey App';
-    const fromEmail = process.env.SMTP_FROM_EMAIL;
     const attachments = normalizeAttachments(templateAttachments);
 
     const payload = (templateSubject || templateBody)
         ? buildCustomEmail({ userName, surveyTitle, templateSubject, templateBody, submittedAt })
         : buildGenericEmail({ userName, surveyTitle, submittedAt });
 
-    // Try SendGrid first if configured
-    if (hasSendGridConfig()) {
-        const sgMailOptions = {
-            to,
-            from: `${fromName} <${fromEmail}>`,
-            subject: payload.subject,
-            text: payload.text,
-            html: payload.html,
-        };
-
-        try {
-            await sendViaSendGrid(sgMailOptions, 20000);
-            console.log(`✅ Survey submission email sent via SendGrid to ${to}`);
-            return {
-                sent: true,
-                skipped: false,
-                attachmentCount: attachments.length,
-                provider: 'sendgrid',
-            };
-        } catch (err) {
-            console.error(`⚠️ SendGrid send failed: ${err.message}, falling back to SMTP`);
-        }
-    }
-
-    // Fallback to SMTP
-    if (hasSmtpConfig()) {
-        const transporter = getTransporter();
-        const mailOptions = {
-            from: `${fromName} <${fromEmail}>`,
+    try {
+        const smtpMeta = await sendSmtpWithFallback((config) => ({
+            from: `${config.fromName || 'Survey App'} <${config.fromEmail}>`,
             to,
             subject: payload.subject,
             text: payload.text,
             html: payload.html,
             attachments,
+        }), 20000);
+        return {
+            sent: true,
+            skipped: false,
+            attachmentCount: attachments.length,
+            port: smtpMeta.port,
+            host: smtpMeta.host,
         };
-
-        try {
-            await sendMailWithTimeout(transporter, mailOptions, 20000);
-            console.log(`✅ Survey submission email sent via SMTP to ${to}`);
-            return {
-                sent: true,
-                skipped: false,
-                attachmentCount: attachments.length,
-                provider: 'smtp',
-            };
-        } catch (err) {
-            console.error(`❌ Survey submission email send failed: ${err.message}`);
-            return {
-                sent: false,
-                skipped: false,
-                reason: err.message,
-                provider: 'smtp',
-            };
-        }
+    } catch (err) {
+        console.error('❌ Survey submission email send failed:', err.message);
+        return {
+            sent: false,
+            skipped: false,
+            reason: err.message,
+        };
     }
-
-    return {
-        sent: false,
-        skipped: true,
-        reason: 'No email provider configured',
-    };
 };
 
 const sendSignupOtpEmail = async ({ to, userName, otpCode, expiresMinutes = 10 }) => {
@@ -257,12 +339,10 @@ const sendSignupOtpEmail = async ({ to, userName, otpCode, expiresMinutes = 10 }
         return {
             sent: false,
             skipped: true,
-            reason: 'Email is not configured',
+            reason: 'SMTP is not configured',
         };
     }
 
-    const fromName = process.env.SMTP_FROM_NAME || 'Survey Pro';
-    const fromEmail = process.env.SMTP_FROM_EMAIL;
     const displayName = userName || 'there';
     const subject = 'Your Survey Pro signup verification code';
     const text = [
@@ -285,64 +365,29 @@ const sendSignupOtpEmail = async ({ to, userName, otpCode, expiresMinutes = 10 }
         <p>Survey Pro Team</p>
     `;
 
-    // Try SendGrid first if configured
-    if (hasSendGridConfig()) {
-        const sgMailOptions = {
-            to,
-            from: `${fromName} <${fromEmail}>`,
-            subject,
-            text,
-            html,
-        };
-
-        try {
-            await sendViaSendGrid(sgMailOptions, 15000);
-            console.log(`✅ OTP email sent via SendGrid to ${to}`);
-            return {
-                sent: true,
-                skipped: false,
-                provider: 'sendgrid',
-            };
-        } catch (err) {
-            console.error(`⚠️ SendGrid send failed: ${err.message}, falling back to SMTP`);
-        }
-    }
-
-    // Fallback to SMTP
-    if (hasSmtpConfig()) {
-        const transporter = getTransporter();
-        const mailOptions = {
-            from: `${fromName} <${fromEmail}>`,
+    try {
+        const smtpMeta = await sendSmtpWithFallback((config) => ({
+            from: `${config.fromName || 'Survey Pro'} <${config.fromEmail}>`,
             to,
             subject,
             text,
             html,
+        }), 15000);
+        console.log(`✅ OTP email sent to ${to} via SMTP ${smtpMeta.host}:${smtpMeta.port}`);
+        return {
+            sent: true,
+            skipped: false,
+            port: smtpMeta.port,
+            host: smtpMeta.host,
         };
-
-        try {
-            await sendMailWithTimeout(transporter, mailOptions, 15000);
-            console.log(`✅ OTP email sent via SMTP to ${to}`);
-            return {
-                sent: true,
-                skipped: false,
-                provider: 'smtp',
-            };
-        } catch (err) {
-            console.error(`❌ OTP email send failed for ${to}: ${err.message}`);
-            return {
-                sent: false,
-                skipped: false,
-                reason: err.message,
-                provider: 'smtp',
-            };
-        }
+    } catch (err) {
+        console.error(`❌ OTP email send failed for ${to}:`, err.message);
+        return {
+            sent: false,
+            skipped: false,
+            reason: err.message,
+        };
     }
-
-    return {
-        sent: false,
-        skipped: true,
-        reason: 'No email provider configured',
-    };
 };
 
 module.exports = {

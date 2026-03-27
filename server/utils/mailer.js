@@ -51,9 +51,18 @@ const getSmtpTransportConfigs = () => {
     const enableAutoFallback = !parseBoolean(process.env.SMTP_DISABLE_AUTO_FALLBACK, false);
 
     const configs = [];
+    const seen = new Set();
+    const pushConfig = (config) => {
+        const key = `${config.host}:${config.port}:${config.secure}:${config.user}`;
+        if (seen.has(key)) {
+            return;
+        }
+        seen.add(key);
+        configs.push(config);
+    };
 
     if (hasPrimarySmtpConfig()) {
-        configs.push({
+        pushConfig({
             host: primaryHost,
             port: primaryPort,
             secure: primarySecure,
@@ -73,7 +82,7 @@ const getSmtpTransportConfigs = () => {
         const resolvedFallbackFromName = fallbackFromName || primaryFromName;
 
         if (resolvedFallbackUser && resolvedFallbackPass && resolvedFallbackFromEmail) {
-            configs.push({
+            pushConfig({
                 host: fallbackHost,
                 port: resolvedFallbackPort,
                 secure: fallbackSecure,
@@ -83,10 +92,32 @@ const getSmtpTransportConfigs = () => {
                 fromName: resolvedFallbackFromName,
                 label: `fallback:${fallbackHost}:${resolvedFallbackPort}`,
             });
+
+            // Auto-try common SMTP relay ports for fallback host too.
+            if (enableAutoFallback) {
+                const fallbackAlternates = [
+                    { port: 587, secure: false },
+                    { port: 2525, secure: false },
+                    { port: 465, secure: true },
+                ];
+
+                fallbackAlternates.forEach(({ port, secure }) => {
+                    pushConfig({
+                        host: fallbackHost,
+                        port,
+                        secure,
+                        user: resolvedFallbackUser,
+                        pass: resolvedFallbackPass,
+                        fromEmail: resolvedFallbackFromEmail,
+                        fromName: resolvedFallbackFromName,
+                        label: `fallback-auto:${fallbackHost}:${port}`,
+                    });
+                });
+            }
         }
     } else if (!Number.isNaN(fallbackPort) && fallbackPort > 0 && fallbackPort !== primaryPort) {
         if (hasPrimarySmtpConfig()) {
-            configs.push({
+            pushConfig({
                 host: primaryHost,
                 port: fallbackPort,
                 secure: fallbackSecure,
@@ -102,7 +133,7 @@ const getSmtpTransportConfigs = () => {
 
     if (enableAutoFallback && hasPrimarySmtpConfig()) {
         if (primaryPort === 587) {
-            configs.push({
+            pushConfig({
                 host: primaryHost,
                 port: 465,
                 secure: true,
@@ -112,8 +143,18 @@ const getSmtpTransportConfigs = () => {
                 fromName: primaryFromName,
                 label: `auto-fallback:${primaryHost}:465`,
             });
+            pushConfig({
+                host: primaryHost,
+                port: 2525,
+                secure: false,
+                user: primaryUser,
+                pass: primaryPass,
+                fromEmail: primaryFromEmail,
+                fromName: primaryFromName,
+                label: `auto-fallback:${primaryHost}:2525`,
+            });
         } else if (primaryPort === 465) {
-            configs.push({
+            pushConfig({
                 host: primaryHost,
                 port: 587,
                 secure: false,
@@ -122,6 +163,16 @@ const getSmtpTransportConfigs = () => {
                 fromEmail: primaryFromEmail,
                 fromName: primaryFromName,
                 label: `auto-fallback:${primaryHost}:587`,
+            });
+            pushConfig({
+                host: primaryHost,
+                port: 2525,
+                secure: false,
+                user: primaryUser,
+                pass: primaryPass,
+                fromEmail: primaryFromEmail,
+                fromName: primaryFromName,
+                label: `auto-fallback:${primaryHost}:2525`,
             });
         }
     }

@@ -1,8 +1,13 @@
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const fs = require('fs');
 const path = require('path');
 
-const hasMailConfig = () => {
+const hasSendGridConfig = () => {
+    return Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim());
+};
+
+const hasSmtpConfig = () => {
     return Boolean(
         process.env.SMTP_HOST
         && process.env.SMTP_PORT
@@ -12,8 +17,12 @@ const hasMailConfig = () => {
     );
 };
 
+const hasMailConfig = () => {
+    return hasSendGridConfig() || hasSmtpConfig();
+};
+
 const getTransporter = () => {
-    if (!hasMailConfig()) {
+    if (!hasSmtpConfig()) {
         return null;
     }
 
@@ -30,12 +39,38 @@ const getTransporter = () => {
     });
 };
 
+const initSendGrid = () => {
+    if (!hasSendGridConfig()) {
+        return null;
+    }
+
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    return sgMail;
+};
+
 const sendMailWithTimeout = async (transporter, mailOptions, timeoutMs = 15000) => {
     return Promise.race([
         transporter.sendMail(mailOptions),
         new Promise((_, reject) =>
             setTimeout(
                 () => reject(new Error(`Email send timeout after ${timeoutMs}ms`)),
+                timeoutMs
+            )
+        ),
+    ]);
+};
+
+const sendViaSendGrid = async (mailOptions, timeoutMs = 15000) => {
+    const sg = initSendGrid();
+    if (!sg) {
+        return null;
+    }
+
+    return Promise.race([
+        sg.send(mailOptions),
+        new Promise((_, reject) =>
+            setTimeout(
+                () => reject(new Error(`SendGrid send timeout after ${timeoutMs}ms`)),
                 timeoutMs
             )
         ),
@@ -138,13 +173,11 @@ const sendSurveySubmissionEmail = async ({
     templateBody,
     templateAttachments,
 }) => {
-    const transporter = getTransporter();
-
-    if (!transporter) {
+    if (!hasMailConfig()) {
         return {
             sent: false,
             skipped: true,
-            reason: 'SMTP is not configured',
+            reason: 'Email is not configured',
         };
     }
 
@@ -156,40 +189,75 @@ const sendSurveySubmissionEmail = async ({
         ? buildCustomEmail({ userName, surveyTitle, templateSubject, templateBody, submittedAt })
         : buildGenericEmail({ userName, surveyTitle, submittedAt });
 
-    const mailOptions = {
-        from: `${fromName} <${fromEmail}>`,
-        to,
-        subject: payload.subject,
-        text: payload.text,
-        html: payload.html,
-        attachments,
-    };
+    // Try SendGrid first if configured
+    if (hasSendGridConfig()) {
+        const sgMailOptions = {
+            to,
+            from: `${fromName} <${fromEmail}>`,
+            subject: payload.subject,
+            text: payload.text,
+            html: payload.html,
+        };
 
-    try {
-        await sendMailWithTimeout(transporter, mailOptions, 20000);
-        return {
-            sent: true,
-            skipped: false,
-            attachmentCount: attachments.length,
-        };
-    } catch (err) {
-        console.error('❌ Survey submission email send failed:', err.message);
-        return {
-            sent: false,
-            skipped: false,
-            reason: err.message,
-        };
+        try {
+            await sendViaSendGrid(sgMailOptions, 20000);
+            console.log(`✅ Survey submission email sent via SendGrid to ${to}`);
+            return {
+                sent: true,
+                skipped: false,
+                attachmentCount: attachments.length,
+                provider: 'sendgrid',
+            };
+        } catch (err) {
+            console.error(`⚠️ SendGrid send failed: ${err.message}, falling back to SMTP`);
+        }
     }
+
+    // Fallback to SMTP
+    if (hasSmtpConfig()) {
+        const transporter = getTransporter();
+        const mailOptions = {
+            from: `${fromName} <${fromEmail}>`,
+            to,
+            subject: payload.subject,
+            text: payload.text,
+            html: payload.html,
+            attachments,
+        };
+
+        try {
+            await sendMailWithTimeout(transporter, mailOptions, 20000);
+            console.log(`✅ Survey submission email sent via SMTP to ${to}`);
+            return {
+                sent: true,
+                skipped: false,
+                attachmentCount: attachments.length,
+                provider: 'smtp',
+            };
+        } catch (err) {
+            console.error(`❌ Survey submission email send failed: ${err.message}`);
+            return {
+                sent: false,
+                skipped: false,
+                reason: err.message,
+                provider: 'smtp',
+            };
+        }
+    }
+
+    return {
+        sent: false,
+        skipped: true,
+        reason: 'No email provider configured',
+    };
 };
 
 const sendSignupOtpEmail = async ({ to, userName, otpCode, expiresMinutes = 10 }) => {
-    const transporter = getTransporter();
-
-    if (!transporter) {
+    if (!hasMailConfig()) {
         return {
             sent: false,
             skipped: true,
-            reason: 'SMTP is not configured',
+            reason: 'Email is not configured',
         };
     }
 
@@ -217,29 +285,64 @@ const sendSignupOtpEmail = async ({ to, userName, otpCode, expiresMinutes = 10 }
         <p>Survey Pro Team</p>
     `;
 
-    const mailOptions = {
-        from: `${fromName} <${fromEmail}>`,
-        to,
-        subject,
-        text,
-        html,
-    };
+    // Try SendGrid first if configured
+    if (hasSendGridConfig()) {
+        const sgMailOptions = {
+            to,
+            from: `${fromName} <${fromEmail}>`,
+            subject,
+            text,
+            html,
+        };
 
-    try {
-        await sendMailWithTimeout(transporter, mailOptions, 15000);
-        console.log(`✅ OTP email sent to ${to}`);
-        return {
-            sent: true,
-            skipped: false,
-        };
-    } catch (err) {
-        console.error(`❌ OTP email send failed for ${to}:`, err.message);
-        return {
-            sent: false,
-            skipped: false,
-            reason: err.message,
-        };
+        try {
+            await sendViaSendGrid(sgMailOptions, 15000);
+            console.log(`✅ OTP email sent via SendGrid to ${to}`);
+            return {
+                sent: true,
+                skipped: false,
+                provider: 'sendgrid',
+            };
+        } catch (err) {
+            console.error(`⚠️ SendGrid send failed: ${err.message}, falling back to SMTP`);
+        }
     }
+
+    // Fallback to SMTP
+    if (hasSmtpConfig()) {
+        const transporter = getTransporter();
+        const mailOptions = {
+            from: `${fromName} <${fromEmail}>`,
+            to,
+            subject,
+            text,
+            html,
+        };
+
+        try {
+            await sendMailWithTimeout(transporter, mailOptions, 15000);
+            console.log(`✅ OTP email sent via SMTP to ${to}`);
+            return {
+                sent: true,
+                skipped: false,
+                provider: 'smtp',
+            };
+        } catch (err) {
+            console.error(`❌ OTP email send failed for ${to}: ${err.message}`);
+            return {
+                sent: false,
+                skipped: false,
+                reason: err.message,
+                provider: 'smtp',
+            };
+        }
+    }
+
+    return {
+        sent: false,
+        skipped: true,
+        reason: 'No email provider configured',
+    };
 };
 
 module.exports = {

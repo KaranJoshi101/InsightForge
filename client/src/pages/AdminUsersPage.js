@@ -10,6 +10,7 @@ const AdminUsersPage = () => {
     const [success, setSuccess] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [banning, setBanning] = useState(null);
+    const [deleting, setDeleting] = useState(null);
     const [selectedUser, setSelectedUser] = useState(null);
     const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
 
@@ -69,6 +70,31 @@ const AdminUsersPage = () => {
             setError(err.response?.data?.error || 'Failed to unban user');
         } finally {
             setBanning(null);
+        }
+    };
+
+    const handleDelete = async (userId) => {
+        if (!window.confirm('Permanently delete this banned user? This action cannot be undone.')) return;
+        try {
+            setDeleting(userId);
+            await userService.deleteUser(userId);
+            setUsers((prev) => prev.filter((u) => u.id !== userId));
+            setPagination((prev) => ({
+                ...prev,
+                total: Math.max(0, (prev.total || 0) - 1),
+            }));
+
+            if (selectedUser?.id === userId) {
+                setSelectedUser(null);
+            }
+
+            setSuccess('User deleted permanently');
+            setError('');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to delete user');
+        } finally {
+            setDeleting(null);
         }
     };
 
@@ -182,6 +208,16 @@ const AdminUsersPage = () => {
                                                 {banning === user.id ? 'Banning...' : 'Ban'}
                                             </button>
                                         )
+                                    )}
+                                    {user.role !== 'admin' && user.is_banned && (
+                                        <button
+                                            onClick={() => handleDelete(user.id)}
+                                            className="btn btn-danger"
+                                            disabled={deleting === user.id || banning === user.id}
+                                            style={{ padding: '4px 8px', fontSize: '0.85rem', marginLeft: '4px', backgroundColor: '#922b21' }}
+                                        >
+                                            {deleting === user.id ? 'Deleting...' : 'Delete'}
+                                        </button>
                                     )}
                                 </td>
                             </tr>

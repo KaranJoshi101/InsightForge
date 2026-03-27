@@ -1,9 +1,11 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import authService from '../services/authService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+    const location = useLocation();
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -32,6 +34,56 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
+    const validateSession = useCallback(async () => {
+        const storedToken = localStorage.getItem('token');
+        if (!storedToken) {
+            return;
+        }
+
+        try {
+            const response = await authService.getCurrentUser();
+            const currentUser = response.data?.user;
+
+            if (!currentUser || currentUser.is_banned) {
+                authService.logout();
+                setToken(null);
+                setUser(null);
+                setError('Your account has been banned. Please contact an administrator.');
+                window.location.href = '/';
+                return;
+            }
+
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            setUser(currentUser);
+        } catch (err) {
+            const status = err.response?.status;
+            const message = String(err.response?.data?.error || err.response?.data?.message || '').toLowerCase();
+            const code = String(err.response?.data?.code || '');
+
+            if (status === 401) {
+                authService.logout();
+                setToken(null);
+                setUser(null);
+                return;
+            }
+
+            if (status === 403 && (code === 'ACCOUNT_BANNED' || message.includes('banned'))) {
+                authService.logout();
+                setToken(null);
+                setUser(null);
+                setError('Your account has been banned. Please contact an administrator.');
+                window.location.href = '/';
+            }
+        }
+    }, []);
+
+    // Revalidate session on navigation so existing banned users are ejected quickly.
+    useEffect(() => {
+        if (!loading && token) {
+            validateSession();
+        }
+    }, [loading, token, location.pathname, validateSession]);
+
     const register = useCallback(async (name, email, password) => {
         try {
             setError(null);
@@ -46,6 +98,37 @@ export const AuthProvider = ({ children }) => {
             return newUser;
         } catch (err) {
             const errorMsg = err.response?.data?.error || 'Registration failed';
+            setError(errorMsg);
+            throw err;
+        }
+    }, []);
+
+    const requestSignupOtp = useCallback(async (name, email, password) => {
+        try {
+            setError(null);
+            const response = await authService.requestSignupOtp(name, email, password);
+            return response.data;
+        } catch (err) {
+            const errorMsg = err.response?.data?.error || 'Failed to send verification code';
+            setError(errorMsg);
+            throw err;
+        }
+    }, []);
+
+    const verifySignupOtp = useCallback(async (email, otp) => {
+        try {
+            setError(null);
+            const response = await authService.verifySignupOtp(email, otp);
+            const { token: newToken, user: newUser } = response.data;
+
+            localStorage.setItem('token', newToken);
+            localStorage.setItem('user', JSON.stringify(newUser));
+
+            setToken(newToken);
+            setUser(newUser);
+            return newUser;
+        } catch (err) {
+            const errorMsg = err.response?.data?.error || 'OTP verification failed';
             setError(errorMsg);
             throw err;
         }
@@ -94,6 +177,8 @@ export const AuthProvider = ({ children }) => {
                 loading,
                 error,
                 register,
+                requestSignupOtp,
+                verifySignupOtp,
                 login,
                 logout,
                 updateUser,

@@ -5,6 +5,9 @@ import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BackLink from '../components/BackLink';
 
+const DRAFT_VERSION = 1;
+const DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
+
 const TakeSurveyPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -17,6 +20,33 @@ const TakeSurveyPage = () => {
     const [success, setSuccess] = useState('');
     const [answers, setAnswers] = useState({});
     const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+    const [draftRestored, setDraftRestored] = useState(false);
+    const [lastSavedAt, setLastSavedAt] = useState(null);
+
+    const getDraftKey = useCallback(() => {
+        let userId = 'anonymous';
+        try {
+            const rawUser = localStorage.getItem('user');
+            if (rawUser) {
+                const parsed = JSON.parse(rawUser);
+                if (parsed?.id) {
+                    userId = String(parsed.id);
+                }
+            }
+        } catch (_err) {
+            userId = 'anonymous';
+        }
+
+        return `survey_draft_v${DRAFT_VERSION}_${userId}_${id}`;
+    }, [id]);
+
+    const clearDraft = useCallback(() => {
+        try {
+            localStorage.removeItem(getDraftKey());
+        } catch (_err) {
+            // Ignore storage errors.
+        }
+    }, [getDraftKey]);
 
     const getQuestionTypeLabel = (questionType) => {
         switch (questionType) {
@@ -49,8 +79,18 @@ const TakeSurveyPage = () => {
                 (userResponsesResponse.data.responses || []).map((response) => Number(response.survey_id))
             );
 
+            const isSubmitted = submittedSurveyIds.has(parseInt(id, 10));
+
             setSurvey(surveyResponse.data.survey);
-            setAlreadySubmitted(submittedSurveyIds.has(parseInt(id, 10)));
+            setAlreadySubmitted(isSubmitted);
+
+            if (isSubmitted) {
+                clearDraft();
+                setAnswers({});
+                setLastSavedAt(null);
+                setDraftRestored(false);
+            }
+
             setError('');
         } catch (err) {
             setError('Failed to load survey');
@@ -58,11 +98,80 @@ const TakeSurveyPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, clearDraft]);
 
     useEffect(() => {
         fetchSurvey();
     }, [fetchSurvey]);
+
+    useEffect(() => {
+        if (!survey || alreadySubmitted) {
+            return;
+        }
+
+        try {
+            const rawDraft = localStorage.getItem(getDraftKey());
+            if (!rawDraft) {
+                return;
+            }
+
+            const parsed = JSON.parse(rawDraft);
+            const isExpired = !parsed?.savedAt || (Date.now() - parsed.savedAt > DRAFT_TTL_MS);
+            if (isExpired) {
+                clearDraft();
+                return;
+            }
+
+            const validQuestionIds = new Set((survey.questions || []).map((q) => String(q.id)));
+            const restoredAnswers = Object.entries(parsed.answers || {}).reduce((acc, [questionId, value]) => {
+                if (validQuestionIds.has(String(questionId))) {
+                    acc[questionId] = value;
+                }
+                return acc;
+            }, {});
+
+            if (Object.keys(restoredAnswers).length > 0) {
+                setAnswers(restoredAnswers);
+                setDraftRestored(true);
+                setLastSavedAt(parsed.savedAt || null);
+            }
+        } catch (_err) {
+            clearDraft();
+        }
+    }, [survey, alreadySubmitted, getDraftKey, clearDraft]);
+
+    useEffect(() => {
+        if (!survey || alreadySubmitted) {
+            return;
+        }
+
+        const hasAnswers = Object.keys(answers).length > 0;
+        if (!hasAnswers) {
+            clearDraft();
+            setLastSavedAt(null);
+            return;
+        }
+
+        const timeoutId = setTimeout(() => {
+            try {
+                const savedAt = Date.now();
+                localStorage.setItem(
+                    getDraftKey(),
+                    JSON.stringify({
+                        version: DRAFT_VERSION,
+                        surveyId: Number(id),
+                        answers,
+                        savedAt,
+                    })
+                );
+                setLastSavedAt(savedAt);
+            } catch (_err) {
+                // Ignore storage errors.
+            }
+        }, 350);
+
+        return () => clearTimeout(timeoutId);
+    }, [answers, survey, alreadySubmitted, getDraftKey, clearDraft, id]);
 
     const handleAnswerChange = (questionId, value) => {
         setAnswers((prev) => ({
@@ -175,6 +284,9 @@ const TakeSurveyPage = () => {
             await responseService.submitResponse(parseInt(id), answersArray);
             setAlreadySubmitted(true);
             setSuccess('Survey submitted successfully!');
+            clearDraft();
+            setLastSavedAt(null);
+            setDraftRestored(false);
             setTimeout(() => {
                 navigate('/responses');
             }, 2000);
@@ -184,12 +296,22 @@ const TakeSurveyPage = () => {
 
             if (err.response?.status === 409) {
                 setAlreadySubmitted(true);
+                clearDraft();
+                setLastSavedAt(null);
+                setDraftRestored(false);
             }
 
             console.error(err);
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleClearSavedDraft = () => {
+        setAnswers({});
+        setDraftRestored(false);
+        setLastSavedAt(null);
+        clearDraft();
     };
 
     if (loading) {
@@ -222,6 +344,32 @@ const TakeSurveyPage = () => {
                             {survey?.questions?.filter((question) => question.is_required).length || 0} Required
                         </span>
                     </div>
+
+                    {(draftRestored || lastSavedAt) && !alreadySubmitted && (
+                        <div
+                            className="alert alert-info"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '12px',
+                            }}
+                        >
+                            <span>
+                                {draftRestored ? 'Draft restored.' : 'Draft autosaved.'}
+                                {lastSavedAt ? ` Last saved ${new Date(lastSavedAt).toLocaleTimeString()}.` : ''}
+                            </span>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 10px', fontSize: '0.85rem' }}
+                                onClick={handleClearSavedDraft}
+                                disabled={submitting}
+                            >
+                                Clear Draft
+                            </button>
+                        </div>
+                    )}
 
                     {error && <div className="alert alert-danger">{error}</div>}
                     {success && <div className="alert alert-success">{success}</div>}

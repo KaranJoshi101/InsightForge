@@ -28,6 +28,10 @@ const userService = {
     unbanUser: (id) =>
         api.put(`/users/${id}/unban`),
 
+    // Delete user permanently (admin)
+    deleteUser: (id) =>
+        api.delete(`/users/${id}`),
+
     // Get dashboard stats (admin)
     getDashboardStats: () =>
         api.get('/users/dashboard-stats'),

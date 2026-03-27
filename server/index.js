@@ -21,6 +21,7 @@ const {
   globalRateLimit,
   securityHeaders,
 } = require('./middleware/security');
+const pool = require('./config/database');
 
 const app = express();
 
@@ -117,12 +118,43 @@ app.use((req, res) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
+const ensureSignupOtpTable = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS signup_otp_verifications (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      name VARCHAR(100) NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      otp_hash VARCHAR(255) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_signup_otp_email
+      ON signup_otp_verifications (email)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_signup_otp_expires_at
+      ON signup_otp_verifications (expires_at)
+  `);
+};
+
 const PORT = Number(process.env.SERVER_PORT || 5000);
 if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
   throw new Error('SERVER_PORT must be a valid port number between 1 and 65535');
 }
 
-const server = app.listen(PORT, () => {
+let server;
+
+const startServer = async () => {
+  await ensureSignupOtpTable();
+
+  server = app.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════════════╗
 ║     🚀 Survey Application API Server Started      ║
@@ -161,15 +193,21 @@ Articles:
   DELETE /api/articles/:id - Delete article (admin)
 
     `);
-});
+  });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use. Set SERVER_PORT to a free port or stop the process using it.`);
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} is already in use. Set SERVER_PORT to a free port or stop the process using it.`);
+      process.exit(1);
+    }
+
+    console.error('❌ Server failed to start:', err.message);
     process.exit(1);
-  }
+  });
+};
 
-  console.error('❌ Server failed to start:', err.message);
+startServer().catch((err) => {
+  console.error('❌ Server bootstrap failed:', err.message);
   process.exit(1);
 });
 

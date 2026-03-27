@@ -135,6 +135,53 @@ const unbanUser = async (req, res, next) => {
     }
 };
 
+// Delete user permanently (admin only, banned users only)
+const deleteUser = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = parseInt(id, 10);
+
+        if (userId === req.user.userId) {
+            return res.status(400).json({
+                error: 'You cannot delete your own account',
+            });
+        }
+
+        const existing = await pool.query(
+            'SELECT id, role, is_banned FROM users WHERE id = $1',
+            [userId]
+        );
+
+        if (existing.rows.length === 0) {
+            return res.status(404).json({
+                error: 'User not found',
+            });
+        }
+
+        const target = existing.rows[0];
+        if (target.role === 'admin') {
+            return res.status(400).json({
+                error: 'Admin users cannot be deleted',
+            });
+        }
+
+        if (!target.is_banned) {
+            return res.status(400).json({
+                error: 'Only banned users can be deleted',
+            });
+        }
+
+        await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+
+        res.json({
+            message: 'User deleted successfully',
+            id: userId,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // Get dashboard stats (admin only)
 const getDashboardStats = async (req, res, next) => {
     try {
@@ -297,6 +344,7 @@ module.exports = {
     getUserById,
     banUser,
     unbanUser,
+    deleteUser,
     getDashboardStats,
     getProfile,
     updateProfile,

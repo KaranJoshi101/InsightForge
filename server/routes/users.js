@@ -6,6 +6,7 @@ const {
     getUserById,
     banUser,
     unbanUser,
+    deleteUser,
     getDashboardStats,
     getProfile,
     updateProfile,
@@ -24,5 +25,6 @@ router.get('/dashboard-stats', authenticate, authorize, getDashboardStats);
 router.get('/:id', authenticate, authorize, idParam('id'), validateRequest, getUserById);
 router.put('/:id/ban', authenticate, authorize, idParam('id'), validateRequest, banUser);
 router.put('/:id/unban', authenticate, authorize, idParam('id'), validateRequest, unbanUser);
+router.delete('/:id', authenticate, authorize, idParam('id'), validateRequest, deleteUser);
 
 module.exports = router;

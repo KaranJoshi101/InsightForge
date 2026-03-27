@@ -3,8 +3,16 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaClipboardList, FaUserCircle, FaUser, FaSignOutAlt } from 'react-icons/fa';
 
-const NO_NAV_ROUTES = ['/login', '/register'];
-const PUBLIC_ONLY_NAV_ROUTES = ['/', '/surveys', '/articles', '/training'];
+const NO_NAV_ROUTES = ['/', '/login', '/register'];
+const PUBLIC_ONLY_NAV_ROUTES = ['/', '/surveys', '/articles', '/training', '/media'];
+
+const isPublicOnlyNavRoute = (pathname) => {
+    if (PUBLIC_ONLY_NAV_ROUTES.includes(pathname)) {
+        return true;
+    }
+
+    return pathname.startsWith('/media/');
+};
 
 const Navbar = () => {
     const { user, logout, isAdmin, isAuthenticated } = useAuth();
@@ -28,7 +36,7 @@ const Navbar = () => {
     }, [showMenu]);
 
     if (NO_NAV_ROUTES.includes(location.pathname)) return null;
-    if (!isAuthenticated && PUBLIC_ONLY_NAV_ROUTES.includes(location.pathname)) return null;
+    if (!isAuthenticated && isPublicOnlyNavRoute(location.pathname)) return null;
 
     const handleLogout = () => {
         logout();

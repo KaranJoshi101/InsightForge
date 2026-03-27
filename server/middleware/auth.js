@@ -16,8 +16,41 @@ const authenticate = (req, res, next) => {
         }
 
         const decoded = verifyToken(token);
-        req.user = decoded;
-        next();
+
+        // Enforce runtime account status checks so bans take effect immediately
+        // even for users with already-issued tokens.
+        pool.query(
+            'SELECT role, is_banned FROM users WHERE id = $1',
+            [decoded.userId],
+            (dbErr, result) => {
+                if (dbErr) {
+                    return res.status(500).json({
+                        error: 'Authentication check failed',
+                    });
+                }
+
+                if (!result.rows.length) {
+                    return res.status(401).json({
+                        error: 'Authentication failed',
+                        message: 'User no longer exists',
+                    });
+                }
+
+                const dbUser = result.rows[0];
+                if (dbUser.is_banned) {
+                    return res.status(403).json({
+                        error: 'Your account has been banned. Please contact an administrator.',
+                        code: 'ACCOUNT_BANNED',
+                    });
+                }
+
+                req.user = {
+                    ...decoded,
+                    role: dbUser.role,
+                };
+                return next();
+            }
+        );
     } catch (err) {
         return res.status(401).json({
             error: 'Authentication failed',

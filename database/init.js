@@ -57,7 +57,8 @@ const initDatabase = async () => {
             '08_create_training_videos.sql',
             '09_create_training_playlists.sql',
             '10_add_youtube_playlist_url.sql',
-            '11_add_survey_submission_email_fields.sql'
+            '11_add_survey_submission_email_fields.sql',
+            '12_add_signup_otp_verifications.sql'
         ];
 
         for (const migration of migrations) {

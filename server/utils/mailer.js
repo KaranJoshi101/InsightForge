@@ -158,6 +158,56 @@ const sendSurveySubmissionEmail = async ({
     };
 };
 
+const sendSignupOtpEmail = async ({ to, userName, otpCode, expiresMinutes = 10 }) => {
+    const transporter = getTransporter();
+
+    if (!transporter) {
+        return {
+            sent: false,
+            skipped: true,
+            reason: 'SMTP is not configured',
+        };
+    }
+
+    const fromName = process.env.SMTP_FROM_NAME || 'Survey Pro';
+    const fromEmail = process.env.SMTP_FROM_EMAIL;
+    const displayName = userName || 'there';
+    const subject = 'Your Survey Pro signup verification code';
+    const text = [
+        `Hello ${displayName},`,
+        '',
+        `Your one-time verification code is: ${otpCode}`,
+        `This code expires in ${expiresMinutes} minutes.`,
+        '',
+        'If you did not request this code, please ignore this email.',
+        '',
+        'Survey Pro Team',
+    ].join('\n');
+
+    const html = `
+        <p>Hello ${displayName},</p>
+        <p>Your one-time verification code is:</p>
+        <p style="font-size: 1.6rem; font-weight: 700; letter-spacing: 4px; margin: 12px 0;">${otpCode}</p>
+        <p>This code expires in ${expiresMinutes} minutes.</p>
+        <p>If you did not request this code, please ignore this email.</p>
+        <p>Survey Pro Team</p>
+    `;
+
+    await transporter.sendMail({
+        from: `${fromName} <${fromEmail}>`,
+        to,
+        subject,
+        text,
+        html,
+    });
+
+    return {
+        sent: true,
+        skipped: false,
+    };
+};
+
 module.exports = {
     sendSurveySubmissionEmail,
+    sendSignupOtpEmail,
 };

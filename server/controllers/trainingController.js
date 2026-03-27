@@ -691,16 +691,56 @@ const deletePlaylist = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query(
-            'DELETE FROM training_playlists WHERE id = $1 RETURNING id',
-            [id]
-        );
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Playlist not found' });
+            const existing = await client.query(
+                'SELECT id FROM training_playlists WHERE id = $1',
+                [id]
+            );
+
+            if (existing.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ error: 'Playlist not found' });
+            }
+
+            const videoIdsResult = await client.query(
+                'SELECT DISTINCT video_id FROM playlist_items WHERE playlist_id = $1',
+                [id]
+            );
+            const videoIds = videoIdsResult.rows.map((row) => row.video_id);
+
+            await client.query('DELETE FROM training_playlists WHERE id = $1', [id]);
+
+            let deletedOrphanVideos = 0;
+            if (videoIds.length > 0) {
+                const orphanDeleteResult = await client.query(
+                    `DELETE FROM training_videos tv
+                     WHERE tv.id = ANY($1::int[])
+                       AND NOT EXISTS (
+                           SELECT 1
+                           FROM playlist_items pi
+                           WHERE pi.video_id = tv.id
+                       )
+                     RETURNING id`,
+                    [videoIds]
+                );
+                deletedOrphanVideos = orphanDeleteResult.rowCount;
+            }
+
+            await client.query('COMMIT');
+
+            res.json({
+                message: 'Playlist deleted successfully',
+                deleted_orphan_videos: deletedOrphanVideos,
+            });
+        } catch (dbErr) {
+            await client.query('ROLLBACK');
+            throw dbErr;
+        } finally {
+            client.release();
         }
-
-        res.json({ message: 'Playlist deleted successfully' });
     } catch (err) {
         next(err);
     }

@@ -27,7 +27,24 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const requestUrl = String(error.config?.url || '');
+        const isAuthFormRequest = requestUrl.includes('/auth/login')
+            || requestUrl.includes('/auth/register')
+            || requestUrl.includes('/auth/register/request-otp')
+            || requestUrl.includes('/auth/register/verify-otp');
+
+        const status = error.response?.status;
+        const message = String(error.response?.data?.error || error.response?.data?.message || '').toLowerCase();
+        const code = String(error.response?.data?.code || '');
+
+        if (!isAuthFormRequest && status === 403 && (code === 'ACCOUNT_BANNED' || message.includes('banned'))) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+            return Promise.reject(error);
+        }
+
+        if (!isAuthFormRequest && error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';

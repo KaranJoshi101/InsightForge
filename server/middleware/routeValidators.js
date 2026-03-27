@@ -62,6 +62,18 @@ const loginValidation = [
         .withMessage('password is required'),
 ];
 
+const verifySignupOtpValidation = [
+    body('email')
+        .isEmail()
+        .withMessage('email must be valid')
+        .normalizeEmail(),
+    body('otp')
+        .isString()
+        .trim()
+        .matches(/^\d{6}$/)
+        .withMessage('otp must be a 6-digit code'),
+];
+
 const surveyWriteValidation = [
     body('title')
         .optional()
@@ -197,6 +209,7 @@ module.exports = {
     paginationQuery,
     registerValidation,
     loginValidation,
+    verifySignupOtpValidation,
     surveyWriteValidation,
     articleWriteValidation,
     profileUpdateValidation,

@@ -151,8 +151,8 @@ const LandingPage = () => {
                 <ul className={`acad-navbar-links ${mobileMenuOpen ? 'open' : ''}`}>
                     <li><button type="button" onClick={() => scrollToSection('hero')}>Home</button></li>
                     <li><Link to="/training" onClick={() => setMobileMenuOpen(false)}>Training</Link></li>
-                    <li><Link to="/surveys" onClick={() => setMobileMenuOpen(false)}>Surveys</Link></li>
                     <li><Link to="/articles" onClick={() => setMobileMenuOpen(false)}>Articles</Link></li>
+                    <li><Link to="/media" onClick={() => setMobileMenuOpen(false)}>Media</Link></li>
                     <li>
                         <Link
                             to="/login"
@@ -495,7 +495,7 @@ const LandingPage = () => {
                                 <li><button type="button" onClick={() => scrollToSection('research')}>Research</button></li>
                                 <li><button type="button" onClick={() => scrollToSection('publications')}>Publications</button></li>
                                 <li><Link to="/training">Training Videos</Link></li>
-                                <li><Link to="/surveys">Take Surveys</Link></li>
+                                <li><Link to="/media">Media &amp; Feedback</Link></li>
                                 <li><Link to="/articles">Read Articles</Link></li>
                                 <li><button type="button" onClick={() => scrollToSection('media-feed')}>Media Feed</button></li>
                             </ul>
@@ -511,7 +511,7 @@ const LandingPage = () => {
                         </div>
                     </div>
                     <div className="acad-footer-bottom">
-                        <p>&copy; {new Date().getFullYear()} SurveyPro &mdash; Academic Research Platform. All rights reserved.</p>
+                        <p>&copy; {new Date().getFullYear()} Survey Pro &mdash; Academic Research Platform. All rights reserved.</p>
                     </div>
                 </div>
             </footer>

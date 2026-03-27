@@ -115,7 +115,7 @@ const MediaDetailPage = () => {
 
     return (
         <div className="container mt-4">
-            <BackLink to="/media" label="Back to Media" />
+            <BackLink to="/media" label="Back to Media Feed" />
 
             <article className="card mt-3" style={{ maxWidth: '900px', margin: '24px auto 0' }}>
                 <div className="card-body">
@@ -132,6 +132,59 @@ const MediaDetailPage = () => {
                                 </p>
                             )}
                         </div>
+                    </div>
+
+                    <div
+                        style={{
+                            display: 'flex',
+                            gap: '10px',
+                            flexWrap: 'wrap',
+                            marginBottom: '18px',
+                        }}
+                    >
+                        <span
+                            style={{
+                                backgroundColor: '#E9F0FF',
+                                color: '#003594',
+                                border: '1px solid #BCD0FF',
+                                borderRadius: '999px',
+                                padding: '4px 11px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                            }}
+                        >
+                            Media
+                        </span>
+                        {article && (
+                            <span
+                                style={{
+                                    backgroundColor: '#F1F8F3',
+                                    color: '#1F6C3E',
+                                    border: '1px solid #BFE3CD',
+                                    borderRadius: '999px',
+                                    padding: '4px 11px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Linked Article
+                            </span>
+                        )}
+                        {survey && (
+                            <span
+                                style={{
+                                    backgroundColor: '#FFF6E1',
+                                    color: '#8C5A00',
+                                    border: '1px solid #F2D28A',
+                                    borderRadius: '999px',
+                                    padding: '4px 11px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Linked Feedback
+                            </span>
+                        )}
                     </div>
 
                     {/* Featured Image */}
@@ -166,108 +219,131 @@ const MediaDetailPage = () => {
                         </div>
                     )}
 
-                    {/* Detailed Content - Linked Article */}
-                    {article && (
+                    <section
+                        style={{
+                            marginTop: '24px',
+                            border: '1px solid #DDE4F0',
+                            borderRadius: '14px',
+                            overflow: 'hidden',
+                            backgroundColor: '#FFFFFF',
+                        }}
+                    >
                         <div
-                            className="media-article-content"
                             style={{
-                                lineHeight: '1.8',
-                                color: '#2B2B2B',
-                                fontSize: '1.05rem',
-                                marginBottom: '32px',
-                                borderTop: '2px solid #e0e0e0',
-                                paddingTop: '24px'
+                                padding: '14px 18px',
+                                borderBottom: '1px solid #E7EDF6',
+                                background: 'linear-gradient(90deg, #F7FAFF 0%, #EEF4FD 100%)',
                             }}
                         >
-                            <h2 style={{ color: '#003594', marginBottom: '12px' }}>📄 {article.title}</h2>
-                            <p style={{ color: '#888', marginBottom: '16px' }}>
-                                By <strong>{article.author_name}</strong> · {new Date(article.created_at).toLocaleDateString()}
-                            </p>
+                            <h2 style={{ margin: 0, color: '#003594', fontSize: '1.2rem' }}>
+                                Connected Content
+                            </h2>
+                        </div>
+
+                        {article && (
                             <div
-                                dangerouslySetInnerHTML={{ __html: article.content }}
-                                style={{ marginBottom: '16px' }}
-                            />
-                        </div>
-                    )}
-
-                    {/* No Linked Content Message */}
-                    {!article && !survey && (
-                        <div style={{
-                            marginTop: '32px',
-                            paddingTop: '24px',
-                            borderTop: '2px solid #e0e0e0',
-                            textAlign: 'center',
-                            color: '#999',
-                        }}>
-                            <p style={{ fontSize: '1rem' }}>No linked article or survey attached to this media post.</p>
-                        </div>
-                    )}
-                    {survey && (
-                        <div style={{
-                            marginTop: '32px',
-                            paddingTop: '24px',
-                            borderTop: '2px solid #e0e0e0'
-                        }}>
-                            <h2 style={{ color: '#003594', marginBottom: '12px' }}>📋 Feedback & Survey</h2>
-                            <p style={{ color: '#666', marginBottom: '16px' }}>
-                                Please share your feedback on this post by completing the survey below.
-                            </p>
-                            
-                            <div style={{
-                                backgroundColor: '#f0f4f9',
-                                padding: '16px',
-                                borderRadius: '8px',
-                                marginBottom: '16px'
-                            }}>
-                                <h3 style={{ color: '#003594', marginTop: 0 }}>{survey.title}</h3>
-                                <p style={{ color: '#555', margin: '8px 0 0 0' }}>{survey.description}</p>
+                                className="media-article-content"
+                                style={{
+                                    lineHeight: '1.8',
+                                    color: '#2B2B2B',
+                                    fontSize: '1.05rem',
+                                    padding: '20px',
+                                    borderBottom: survey ? '1px solid #E7EDF6' : 'none',
+                                }}
+                            >
+                                <h3 style={{ color: '#003594', marginBottom: '12px', marginTop: 0 }}>Article</h3>
+                                <h4 style={{ color: '#1F2D48', marginBottom: '10px' }}>{article.title}</h4>
+                                <p style={{ color: '#888', marginBottom: '16px' }}>
+                                    By <strong>{article.author_name}</strong> · {new Date(article.created_at).toLocaleDateString()}
+                                </p>
+                                <div
+                                    dangerouslySetInnerHTML={{ __html: article.content }}
+                                    style={{ marginBottom: '6px' }}
+                                />
                             </div>
+                        )}
 
-                            {alreadySubmitted ? (
-                                <>
-                                    <button
-                                        type="button"
-                                        disabled
+                        {survey && (
+                            <div style={{ padding: '20px' }}>
+                                <h3 style={{ color: '#003594', marginTop: 0, marginBottom: '10px' }}>Feedback</h3>
+                                <p style={{ color: '#666', marginBottom: '14px' }}>
+                                    Please share your feedback on this media post.
+                                </p>
+
+                                <div style={{
+                                    backgroundColor: '#f0f4f9',
+                                    padding: '16px',
+                                    borderRadius: '8px',
+                                    marginBottom: '16px'
+                                }}>
+                                    <h4 style={{ color: '#003594', marginTop: 0 }}>{survey.title}</h4>
+                                    <p style={{ color: '#555', margin: '8px 0 0 0' }}>{survey.description}</p>
+                                </div>
+
+                                {alreadySubmitted ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            disabled
+                                            style={{
+                                                display: 'inline-block',
+                                                backgroundColor: '#1a6e42',
+                                                color: 'white',
+                                                padding: '12px 24px',
+                                                borderRadius: '6px',
+                                                textDecoration: 'none',
+                                                fontWeight: '600',
+                                                border: 'none',
+                                                opacity: 0.7,
+                                                cursor: 'not-allowed'
+                                            }}
+                                        >
+                                            ✓ Feedback Submitted
+                                        </button>
+                                        <p style={{ color: '#1a6e42', marginTop: '10px', fontSize: '0.9rem' }}>
+                                            Submitted on {formatSubmittedAt(submittedAt) || 'N/A'}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <Link
+                                        to={isAuthenticated
+                                            ? `/survey/${survey.id}/take`
+                                            : '/login'}
+                                        state={isAuthenticated
+                                            ? { fromMedia: `/media/${id}` }
+                                            : {
+                                                from: `/survey/${survey.id}/take`,
+                                                fromMedia: `/media/${id}`,
+                                            }}
                                         style={{
                                             display: 'inline-block',
-                                            backgroundColor: '#1a6e42',
+                                            backgroundColor: '#003594',
                                             color: 'white',
                                             padding: '12px 24px',
                                             borderRadius: '6px',
                                             textDecoration: 'none',
                                             fontWeight: '600',
-                                            border: 'none',
-                                            opacity: 0.7,
-                                            cursor: 'not-allowed'
+                                            transition: 'background 0.2s'
                                         }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = '#002255'}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = '#003594'}
                                     >
-                                        ✓ Already Submitted
-                                    </button>
-                                    <p style={{ color: '#1a6e42', marginTop: '10px', fontSize: '0.9rem' }}>
-                                        Submitted on {formatSubmittedAt(submittedAt) || 'N/A'}
-                                    </p>
-                                </>
-                            ) : (
-                                <Link
-                                    to={`/survey/${survey.id}/take`}
-                                    style={{
-                                        display: 'inline-block',
-                                        backgroundColor: '#003594',
-                                        color: 'white',
-                                        padding: '12px 24px',
-                                        borderRadius: '6px',
-                                        textDecoration: 'none',
-                                        fontWeight: '600',
-                                        transition: 'background 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#002255'}
-                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#003594'}
-                                >
-                                    Take Survey
-                                </Link>
-                            )}
-                        </div>
-                    )}
+                                        {isAuthenticated ? 'Give Feedback' : 'Login to Give Feedback'}
+                                    </Link>
+                                )}
+                            </div>
+                        )}
+
+                        {!article && !survey && (
+                            <div style={{
+                                textAlign: 'center',
+                                color: '#999',
+                                padding: '26px 20px',
+                            }}>
+                                <p style={{ fontSize: '1rem', margin: 0 }}>No linked article or feedback is attached to this media post yet.</p>
+                            </div>
+                        )}
+                    </section>
                 </div>
             </article>
         </div>

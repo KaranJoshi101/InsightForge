@@ -8,67 +8,28 @@ const DashboardPage = () => {
 
     return (
         <div className="container mt-4">
-            <h1 style={{ color: '#003594' }}>Welcome, {user?.name}!</h1>
-            <p style={{ color: '#555', marginBottom: '32px', fontSize: '1.1rem' }}>
-                Here's what you can do:
-            </p>
+            <header className="page-header">
+                <h1 className="page-header-title">Welcome, {user?.name}!</h1>
+                <p className="page-header-subtitle">Here is what you can do next.</p>
+            </header>
 
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                    gap: '20px',
-                }}
-            >
-                {/* <Link
-                    to="/surveys"
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                >
-                    <div className="card" style={{ cursor: 'pointer', height: '100%', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,53,148,0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
-                    >
-                        <div className="card-body">
-                            <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
-                                <FaClipboardList size={38} aria-hidden="true" />
-                            </div>
-                            <h3 style={{ color: '#003594' }}>Take Surveys</h3>
-                            <p style={{ color: '#555' }}>
-                                Participate in surveys and share your feedback
-                            </p>
-                        </div>
-                    </div>
-                </Link>
-                */}
-
-                <Link
-                    to="/responses"
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                >
-                    <div className="card" style={{ cursor: 'pointer', height: '100%', transition: 'box-shadow 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,53,148,0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
-                    >
+            <div className="dashboard-action-grid">
+                <Link to="/responses" className="dashboard-action-link">
+                    <div className="card dashboard-action-card">
                         <div className="card-body">
                             <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
                                 <FaChartBar size={38} aria-hidden="true" />
                             </div>
                             <h3 style={{ color: '#003594' }}>My Responses</h3>
                             <p style={{ color: '#555' }}>
-                                View surveys you've already responded to
+                                View feedback forms you have already submitted
                             </p>
                         </div>
                     </div>
                 </Link>
 
-                <Link
-                    to="/articles"
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                >
-                    <div className="card" style={{ cursor: 'pointer', height: '100%', transition: 'box-shadow 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,53,148,0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
-                    >
+                <Link to="/articles" className="dashboard-action-link">
+                    <div className="card dashboard-action-card">
                         <div className="card-body">
                             <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
                                 <FaNewspaper size={38} aria-hidden="true" />
@@ -82,21 +43,15 @@ const DashboardPage = () => {
                 </Link>
 
                 {isAdmin && (
-                    <Link
-                        to="/admin"
-                        style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                        <div className="card" style={{ cursor: 'pointer', height: '100%', background: 'linear-gradient(135deg, rgba(0,53,148,0.05), rgba(255,184,28,0.08))', transition: 'box-shadow 0.2s' }}
-                            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,53,148,0.1)'}
-                            onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
-                        >
+                    <Link to="/admin" className="dashboard-action-link">
+                        <div className="card dashboard-action-card admin">
                             <div className="card-body">
                                 <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
                                     <FaCog size={38} aria-hidden="true" />
                                 </div>
                                 <h3 style={{ color: '#003594' }}>Admin Panel</h3>
                                 <p style={{ color: '#555' }}>
-                                    Manage surveys, articles and analytics
+                                    Manage feedback forms, articles, media, training, and analytics
                                 </p>
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -10,6 +10,8 @@ const SurveyDetailPage = () => {
     const { id } = useParams();
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const backTo = location.state?.fromMedia || '/media';
     const [survey, setSurvey] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -74,7 +76,7 @@ const SurveyDetailPage = () => {
     if (error || !survey) {
         return (
             <div className="container mt-4">
-                <BackLink to="/surveys" label="Go Back" />
+                <BackLink to={backTo} label="Go Back" />
                 <div className="alert alert-danger">{error || 'Survey not found'}</div>
             </div>
         );
@@ -82,7 +84,7 @@ const SurveyDetailPage = () => {
 
     return (
         <div className="container mt-4">
-            <BackLink to="/surveys" label="Back to Surveys" />
+            <BackLink to={backTo} label="Back to Media" />
 
             <div className="card mt-3">
                 <div className="card-body">
@@ -148,7 +150,7 @@ const SurveyDetailPage = () => {
                                 </button>
                             ) : (
                                 <button
-                                    onClick={() => navigate(`/survey/${id}/take`)}
+                                    onClick={() => navigate(`/survey/${id}/take`, { state: { fromMedia: backTo } })}
                                     className="btn btn-success"
                                     style={{ fontSize: '1.1rem', padding: '12px 24px' }}
                                 >
@@ -159,7 +161,11 @@ const SurveyDetailPage = () => {
                             <div className="alert alert-info">
                                 <p>
                                     Please{' '}
-                                    <Link to="/login" style={{ color: '#003594', fontWeight: 'bold' }}>
+                                    <Link
+                                        to="/login"
+                                        state={{ from: `/survey/${id}/take`, fromMedia: backTo }}
+                                        style={{ color: '#003594', fontWeight: 'bold' }}
+                                    >
                                         login
                                     </Link>{' '}
                                     to take this survey

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BackLink from '../components/BackLink';
 
@@ -11,12 +11,26 @@ const LoginPage = () => {
 
     const { login, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const redirectPath = location.state?.from || '/dashboard';
+    const redirectState = useMemo(() => {
+        if (!location.state?.from) {
+            return undefined;
+        }
+
+        return Object.entries(location.state).reduce((acc, [key, value]) => {
+            if (key !== 'from') {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+    }, [location.state]);
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard');
+            navigate(redirectPath, { replace: true, state: redirectState });
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate, redirectPath, redirectState]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -25,7 +39,7 @@ const LoginPage = () => {
 
         try {
             await login(email, password);
-            navigate('/dashboard');
+            navigate(redirectPath, { replace: true, state: redirectState });
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed');
         } finally {
@@ -34,28 +48,17 @@ const LoginPage = () => {
     };
 
     return (
-        <div
-            style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#E8E9EE'
-            }}
-        >
-            <div style={{ width: '100%', maxWidth: '400px' }} className="p-4">
+        <div className="auth-page">
+            <div className="auth-shell p-4">
                 <div className="card">
                     <div className="card-body">
 
-                        {/* Header */}
-                        
-                        <div className="flex items-center justify-between mb-6">
-                            <h1 className="text-xl font-semibold flex items-center gap-2" style={{ color: '#003594', marginBottom: 0 }}>
-                                Login
-                            </h1>
-                        </div>
-                        <div style={{ marginBottom: '16px' }}>
+                        <div className="auth-back-row">
                             <BackLink to="/" label="Go Back" />
+                        </div>
+
+                        <div className="auth-header">
+                            <h1 className="auth-title">Login</h1>
                         </div>
 
                         {error && (
@@ -96,13 +99,7 @@ const LoginPage = () => {
                             </button>
                         </form>
 
-                        <p
-                            style={{
-                                textAlign: 'center',
-                                marginTop: '16px',
-                                color: '#666'
-                            }}
-                        >
+                        <p className="auth-switch-text">
                             Don't have an account?{' '}
                             <Link
                                 to="/register"
@@ -114,32 +111,6 @@ const LoginPage = () => {
                                 Sign up
                             </Link>
                         </p>
-
-                        <hr
-                            style={{
-                                margin: '16px 0',
-                                borderColor: '#eee'
-                            }}
-                        />
-
-                        <div
-                            style={{
-                                backgroundColor: '#e8f0fe',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                fontSize: '0.9rem'
-                            }}
-                        >
-                            <p style={{ margin: '0 0 8px 0' }}>
-                                <strong style={{ color: '#003594' }}>Demo Credentials:</strong>
-                            </p>
-                            <p style={{ margin: '4px 0' }}>
-                                <strong style={{ color: '#003594' }}>Admin:</strong> manojkumar@jnu.ac.in
-                            </p>
-                            <p style={{ margin: '4px 0' }}>
-                                Password: manoj123
-                            </p>
-                        </div>
 
                     </div>
                 </div>

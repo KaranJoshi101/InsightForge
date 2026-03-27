@@ -138,6 +138,18 @@ const unbanUser = async (req, res, next) => {
 // Get dashboard stats (admin only)
 const getDashboardStats = async (req, res, next) => {
     try {
+        const runOptionalQuery = async (query, params = [], fallbackRows = []) => {
+            try {
+                return await pool.query(query, params);
+            } catch (err) {
+                // Allow dashboard to load even if optional modules are not migrated yet.
+                if (err.code === '42P01') {
+                    return { rows: fallbackRows };
+                }
+                throw err;
+            }
+        };
+
         // Responses per survey (for bar chart)
         const responsesPerSurvey = await pool.query(`
             SELECT s.id, s.title, COUNT(r.id)::int AS response_count
@@ -164,21 +176,50 @@ const getDashboardStats = async (req, res, next) => {
             GROUP BY is_published
         `);
 
+        // Media status distribution (for doughnut chart)
+        const mediaStatusDist = await runOptionalQuery(`
+            SELECT
+                CASE
+                    WHEN article_id IS NOT NULL OR survey_id IS NOT NULL THEN 'linked'
+                    ELSE 'standalone'
+                END AS status,
+                COUNT(*)::int AS count
+            FROM media_posts
+            GROUP BY 1
+        `);
+
+        // Training video status distribution (for doughnut chart)
+        const trainingVideoStatusDist = await runOptionalQuery(`
+            SELECT
+                CASE WHEN is_active THEN 'active' ELSE 'inactive' END AS status,
+                COUNT(*)::int AS count
+            FROM training_videos
+            GROUP BY is_active
+        `);
+
         // Summary counts
         const totalUsers = await pool.query('SELECT COUNT(*)::int AS count FROM users');
         const totalSurveys = await pool.query('SELECT COUNT(*)::int AS count FROM surveys');
         const totalResponses = await pool.query('SELECT COUNT(*)::int AS count FROM responses');
         const bannedUsers = await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE is_banned = true");
+        const totalMediaPosts = await runOptionalQuery('SELECT COUNT(*)::int AS count FROM media_posts', [], [{ count: 0 }]);
+        const totalTrainingVideos = await runOptionalQuery('SELECT COUNT(*)::int AS count FROM training_videos', [], [{ count: 0 }]);
+        const activeTrainingVideos = await runOptionalQuery('SELECT COUNT(*)::int AS count FROM training_videos WHERE is_active = true', [], [{ count: 0 }]);
 
         res.json({
             responses_per_survey: responsesPerSurvey.rows,
             survey_status_distribution: surveyStatusDist.rows,
             article_status_distribution: articleStatusDist.rows,
+            media_status_distribution: mediaStatusDist.rows,
+            training_video_status_distribution: trainingVideoStatusDist.rows,
             summary: {
                 total_users: totalUsers.rows[0].count,
                 total_surveys: totalSurveys.rows[0].count,
                 total_responses: totalResponses.rows[0].count,
                 banned_users: bannedUsers.rows[0].count,
+                total_media_posts: totalMediaPosts.rows[0].count,
+                total_training_videos: totalTrainingVideos.rows[0].count,
+                active_training_videos: activeTrainingVideos.rows[0].count,
             },
         });
     } catch (err) {

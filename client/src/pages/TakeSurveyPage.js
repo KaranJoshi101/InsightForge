@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -8,6 +8,8 @@ import BackLink from '../components/BackLink';
 const TakeSurveyPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const backTo = location.state?.fromMedia || '/media';
     const [survey, setSurvey] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -197,7 +199,7 @@ const TakeSurveyPage = () => {
     if (error && !survey) {
         return (
             <div className="container mt-4">
-                <BackLink to="/surveys" label="Go Back" />
+                <BackLink to={backTo} label="Back to Media" />
                 <div className="alert alert-danger">{error}</div>
             </div>
         );
@@ -206,7 +208,7 @@ const TakeSurveyPage = () => {
     return (
         <div className="container mt-4">
             <div className="survey-form-shell">
-            <BackLink to={`/surveys/${id}`} label="Back to Survey" />
+            <BackLink to={backTo} label="Back to Media" />
 
             <div className="card survey-form-card">
                 <div className="card-body">

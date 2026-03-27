@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import BackLink from '../components/BackLink';
 
 const RegisterPage = () => {
     const [name, setName] = useState('');
@@ -46,11 +47,17 @@ const RegisterPage = () => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E8E9EE' }}>
-            <div style={{ width: '100%', maxWidth: '400px' }} className="p-4">
+        <div className="auth-page">
+            <div className="auth-shell p-4">
                 <div className="card">
                     <div className="card-body">
-                        <h1 style={{ textAlign: 'center', marginBottom: '24px', color: '#003594' }}>Create Account</h1>
+                        <div className="auth-back-row">
+                            <BackLink to="/" label="Go Back" />
+                        </div>
+
+                        <div className="auth-header">
+                            <h1 className="auth-title">Create Account</h1>
+                        </div>
 
                         {error && <div className="alert alert-danger">{error}</div>}
 
@@ -111,7 +118,7 @@ const RegisterPage = () => {
                             </button>
                         </form>
 
-                        <p style={{ textAlign: 'center', marginTop: '16px', color: '#666' }}>
+                        <p className="auth-switch-text">
                             Already have an account?{' '}
                             <Link to="/login" style={{ color: '#003594', textDecoration: 'none' }}>
                                 Login

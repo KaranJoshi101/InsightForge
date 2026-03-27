@@ -64,10 +64,9 @@ const Navbar = () => {
                     }}
                 >
                     <FaClipboardList size={20} aria-hidden="true" />
-                    <span>Survey App</span>
+                    <span>Survey Pro</span>
                 </Link>
                 <div className="flex align-center gap-3">
-                    {/* <Link to="/surveys" style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}>Surveys</Link> */}
                     <Link to="/articles" style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}>Articles</Link>
                 </div>
                 <div className="flex align-center gap-3">
@@ -131,18 +130,11 @@ const Navbar = () => {
                     }}
                 >
                     <FaClipboardList size={20} aria-hidden="true" />
-                    <span>Survey App</span>
+                    <span>Survey Pro</span>
                 </Link>
             </div>
 
             <div className="flex align-center gap-3">
-                {/* <Link
-                    to="/surveys"
-                    style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}
-                >
-                    Surveys
-                </Link>
-                */}
                 <Link
                     to="/articles"
                     style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}

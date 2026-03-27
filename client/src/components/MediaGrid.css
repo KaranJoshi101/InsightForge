@@ -464,6 +464,26 @@
   font-family: 'Source Sans Pro', 'Segoe UI', sans-serif;
 }
 
+.media-card-links {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.media-card-link-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
 /* Source Badge */
 .source-badge {
   position: absolute;

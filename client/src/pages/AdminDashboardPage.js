@@ -103,6 +103,48 @@ const AdminDashboardPage = () => {
         },
     };
 
+    const mediaStatusChartData = dashboardStats ? {
+        labels: dashboardStats.media_status_distribution.map((m) =>
+            m.status.charAt(0).toUpperCase() + m.status.slice(1)
+        ),
+        datasets: [{
+            data: dashboardStats.media_status_distribution.map((m) => m.count),
+            backgroundColor: ['#3B82F6', '#FFB81C'],
+            borderWidth: 2,
+        }],
+    } : null;
+
+    const mediaStatusChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: 'Media Status Distribution' },
+        },
+    };
+
+    const trainingVideoStatusChartData = dashboardStats ? {
+        labels: dashboardStats.training_video_status_distribution.map((t) =>
+            t.status.charAt(0).toUpperCase() + t.status.slice(1)
+        ),
+        datasets: [{
+            data: dashboardStats.training_video_status_distribution.map((t) => t.count),
+            backgroundColor: ['#27ae60', '#c0392b'],
+            borderWidth: 2,
+        }],
+    } : null;
+
+    const trainingVideoStatusChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: 'Training Video Status Distribution' },
+        },
+    };
+
     const surveyCounts = dashboardStats
         ? dashboardStats.survey_status_distribution.reduce((acc, item) => {
             acc.total += item.count;
@@ -120,6 +162,24 @@ const AdminDashboardPage = () => {
             return acc;
         }, { total: 0, published: 0, draft: 0 })
         : { total: 0, published: 0, draft: 0 };
+
+    const mediaCounts = dashboardStats
+        ? dashboardStats.media_status_distribution.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.status === 'linked') acc.linked += item.count;
+            if (item.status === 'standalone') acc.standalone += item.count;
+            return acc;
+        }, { total: 0, linked: 0, standalone: 0 })
+        : { total: 0, linked: 0, standalone: 0 };
+
+    const trainingVideoCounts = dashboardStats
+        ? dashboardStats.training_video_status_distribution.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.status === 'active') acc.active += item.count;
+            if (item.status === 'inactive') acc.inactive += item.count;
+            return acc;
+        }, { total: 0, active: 0, inactive: 0 })
+        : { total: 0, active: 0, inactive: 0 };
 
     if (statsLoading) {
         return <LoadingSpinner fullScreen={false} />;
@@ -190,6 +250,44 @@ const AdminDashboardPage = () => {
                             ) : (
                                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
                                     No articles created yet
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="card">
+                        <div className="card-body">
+                            <h2>Media Status</h2>
+                            <div className="admin-chip-row">
+                                <span className="admin-chip total">Total: {mediaCounts.total}</span>
+                                <span className="admin-chip published">Linked: {mediaCounts.linked}</span>
+                                <span className="admin-chip draft">Standalone: {mediaCounts.standalone}</span>
+                            </div>
+                            {mediaStatusChartData && mediaStatusChartData.labels.length > 0 ? (
+                                <div style={{ height: '340px' }}>
+                                    <Doughnut data={mediaStatusChartData} options={mediaStatusChartOptions} />
+                                </div>
+                            ) : (
+                                <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
+                                    No media posts created yet
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="card">
+                        <div className="card-body">
+                            <h2>Training Video Status</h2>
+                            <div className="admin-chip-row">
+                                <span className="admin-chip total">Total: {trainingVideoCounts.total}</span>
+                                <span className="admin-chip published">Active: {trainingVideoCounts.active}</span>
+                                <span className="admin-chip draft">Inactive: {trainingVideoCounts.inactive}</span>
+                            </div>
+                            {trainingVideoStatusChartData && trainingVideoStatusChartData.labels.length > 0 ? (
+                                <div style={{ height: '340px' }}>
+                                    <Doughnut data={trainingVideoStatusChartData} options={trainingVideoStatusChartOptions} />
+                                </div>
+                            ) : (
+                                <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
+                                    No training videos created yet
                                 </p>
                             )}
                         </div>

@@ -1,18 +1,23 @@
 import React from 'react';
 import MediaGrid from '../components/MediaGrid';
+import BackLink from '../components/BackLink';
+import { useAuth } from '../context/AuthContext';
 
 const MediaPage = () => {
+    const { isAuthenticated } = useAuth();
+    const backDestination = isAuthenticated ? '/dashboard' : '/';
+
     return (
-        <div style={{ padding: '30px 20px' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-                <h1 style={{ color: '#003594', marginBottom: '30px', fontSize: '2.5rem' }}>
-                    Media Feed
-                </h1>
-                <p style={{ color: '#555', marginBottom: '40px', fontSize: '1.1rem' }}>
-                    Explore highlights and research updates
-                </p>
-                <MediaGrid title="" limit={50} clickable={true} />
-            </div>
+        <div className="page-shell-wide">
+            <BackLink
+                to={backDestination}
+                label={isAuthenticated ? 'Back to Dashboard' : 'Back to Home'}
+            />
+            <header className="page-header">
+                <h1 className="page-header-title">Media Feed</h1>
+                <p className="page-header-subtitle">Explore highlights and research updates</p>
+            </header>
+            <MediaGrid title="" limit={50} clickable={true} />
         </div>
     );
 };

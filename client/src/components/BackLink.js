@@ -18,8 +18,12 @@ const BackLink = ({ to, label = 'Go Back' }) => {
                 fontWeight: '500',
                 transition: 'opacity 0.2s ease',
             }}
-            onMouseEnter={(e) => e.target.style.opacity = '0.7'}
-            onMouseLeave={(e) => e.target.style.opacity = '1'}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.7';
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+            }}
         >
             <FaArrowLeft size={12} aria-hidden="true" />
             {label}

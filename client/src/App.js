@@ -95,22 +95,8 @@ const AppContent = () => {
                             </ProtectedRoute>
                         }
                     />
-                    <Route
-                        path="/media"
-                        element={
-                            <ProtectedRoute>
-                                <MediaPage />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/media/:id"
-                        element={
-                            <ProtectedRoute>
-                                <MediaDetailPage />
-                            </ProtectedRoute>
-                        }
-                    />
+                    <Route path="/media" element={<MediaPage />} />
+                    <Route path="/media/:id" element={<MediaDetailPage />} />
 
                     {/* Protected Admin Routes */}
                     <Route

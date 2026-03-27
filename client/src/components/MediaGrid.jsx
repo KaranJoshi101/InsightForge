@@ -107,6 +107,12 @@ const MediaCard = ({ post, isAdmin, onEdit, onDelete, actionLoading, clickable =
                         {post.description && (
                             <p className="media-card-description">{post.description}</p>
                         )}
+                        {(post.article_id || post.survey_id) && (
+                            <div className="media-card-links" aria-label="Linked content">
+                                {post.article_id && <span className="media-card-link-chip">Article</span>}
+                                {post.survey_id && <span className="media-card-link-chip">Feedback</span>}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -455,7 +461,7 @@ const MediaGrid = ({ title = 'Media Feed', limit = 50, clickable = false, adminM
                         {/* Linked Content Section */}
                         <div className="media-form-section">
                             <h4 className="media-form-section-title">🔗 Link Content</h4>
-                            <p className="media-form-help" style={{ marginBottom: '16px' }}>Optionally attach an existing article or survey to this media post</p>
+                            <p className="media-form-help" style={{ marginBottom: '16px' }}>Optionally attach an existing article or feedback form to this media post</p>
                             
                             <div className="media-form-field">
                                 <label htmlFor="article_select">
@@ -479,7 +485,7 @@ const MediaGrid = ({ title = 'Media Feed', limit = 50, clickable = false, adminM
 
                             <div className="media-form-field">
                                 <label htmlFor="survey_select">
-                                    <strong>Survey (Optional)</strong>
+                                    <strong>Feedback Form (Optional)</strong>
                                 </label>
                                 <select 
                                     id="survey_select" 
@@ -487,14 +493,14 @@ const MediaGrid = ({ title = 'Media Feed', limit = 50, clickable = false, adminM
                                     value={form.survey_id || ''} 
                                     onChange={(e) => setForm((prev) => ({ ...prev, survey_id: e.target.value ? parseInt(e.target.value) : null }))}
                                 >
-                                    <option value="">-- No Survey --</option>
+                                    <option value="">-- No Feedback Form --</option>
                                     {surveys.map((survey) => (
                                         <option key={survey.id} value={survey.id}>
                                             {survey.title}
                                         </option>
                                     ))}
                                 </select>
-                                <p className="media-form-help">Select a survey for feedback collection on this media</p>
+                                <p className="media-form-help">Select a feedback form users can submit from this media page</p>
                             </div>
                         </div>
 

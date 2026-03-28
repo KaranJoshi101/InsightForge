@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaChartBar, FaNewspaper, FaCog } from 'react-icons/fa';
+import { FaChartBar, FaNewspaper, FaCog, FaClipboardList } from 'react-icons/fa';
 
 const DashboardPage = () => {
     const { user, isAdmin } = useAuth();
@@ -14,6 +14,20 @@ const DashboardPage = () => {
             </header>
 
             <div className="dashboard-action-grid">
+                <Link to="/surveys" className="dashboard-action-link">
+                    <div className="card dashboard-action-card">
+                        <div className="card-body">
+                            <div style={{ margin: '0 0 12px 0', color: '#003594' }}>
+                                <FaClipboardList size={38} aria-hidden="true" />
+                            </div>
+                            <h3 style={{ color: '#003594' }}>Surveys</h3>
+                            <p style={{ color: '#555' }}>
+                                Browse and complete available surveys
+                            </p>
+                        </div>
+                    </div>
+                </Link>
+
                 <Link to="/responses" className="dashboard-action-link">
                     <div className="card dashboard-action-card">
                         <div className="card-body">

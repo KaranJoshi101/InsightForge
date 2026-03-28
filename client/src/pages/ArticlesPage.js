@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import articleService from '../services/articleService';
+import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BackLink from '../components/BackLink';
 import { useAuth } from '../context/AuthContext';
@@ -13,18 +14,40 @@ const stripHtml = (html) => {
 
 const ArticlesPage = () => {
     const { isAuthenticated } = useAuth();
-    const [articles, setArticles] = useState([]);
+    const [allArticles, setAllArticles] = useState([]);
+    const [talkSummaryArticleIds, setTalkSummaryArticleIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(0);
+    const pageSize = 10;
 
     const fetchArticles = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await articleService.getArticles(page, 10);
-            setArticles(response.data.articles);
-            setTotalPages(response.data.pagination.pages);
+            const [articlesResult, mediaResult] = await Promise.allSettled([
+                articleService.getArticles(1, 500),
+                api.get('/media', { params: { limit: 500 } }),
+            ]);
+
+            if (articlesResult.status !== 'fulfilled') {
+                throw articlesResult.reason;
+            }
+
+            const articlesPayload = Array.isArray(articlesResult.value.data?.articles)
+                ? articlesResult.value.data.articles
+                : [];
+            setAllArticles(articlesPayload);
+
+            const posts = mediaResult.status === 'fulfilled' && Array.isArray(mediaResult.value.data?.posts)
+                ? mediaResult.value.data.posts
+                : [];
+            const attachedArticleIds = new Set(
+                posts
+                    .map((post) => Number(post.article_id))
+                    .filter((articleId) => Number.isInteger(articleId) && articleId > 0)
+            );
+            setTalkSummaryArticleIds(attachedArticleIds);
+
             setError('');
         } catch (err) {
             setError('Failed to load articles');
@@ -32,13 +55,32 @@ const ArticlesPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [page]);
+    }, []);
+
+    const articles = useMemo(
+        () => allArticles.filter((article) => !talkSummaryArticleIds.has(Number(article.id))),
+        [allArticles, talkSummaryArticleIds]
+    );
+
+    const totalPages = Math.ceil(articles.length / pageSize);
+
+    const pagedArticles = useMemo(() => {
+        const startIndex = (page - 1) * pageSize;
+        return articles.slice(startIndex, startIndex + pageSize);
+    }, [articles, page]);
 
     useEffect(() => {
         fetchArticles();
     }, [fetchArticles]);
 
-    if (loading && articles.length === 0) {
+    useEffect(() => {
+        const safeTotalPages = Math.max(totalPages, 1);
+        if (page > safeTotalPages) {
+            setPage(1);
+        }
+    }, [page, totalPages]);
+
+    if (loading && allArticles.length === 0) {
         return <LoadingSpinner fullScreen={false} />;
     }
 
@@ -57,12 +99,14 @@ const ArticlesPage = () => {
             {articles.length === 0 ? (
                 <div style={{ padding: '40px' }}>
                     <p style={{ fontSize: '1.1rem', color: '#666' }}>
-                        No articles available yet.
+                        {allArticles.length === 0
+                            ? 'No articles available yet.'
+                            : 'No articles available in this section.'}
                     </p>
                 </div>
             ) : (
                 <div>
-                    {articles.map((article) => (
+                    {pagedArticles.map((article) => (
                         <div key={article.id} className="card" style={{ marginBottom: '24px' }}>
                             <div className="card-body">
                                 <h2 style={{ marginTop: '0', marginBottom: '12px' }}>

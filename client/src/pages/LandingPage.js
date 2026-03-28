@@ -150,6 +150,7 @@ const LandingPage = () => {
 
                 <ul className={`acad-navbar-links ${mobileMenuOpen ? 'open' : ''}`}>
                     <li><button type="button" onClick={() => scrollToSection('hero')}>Home</button></li>
+                    <li><Link to="/surveys" onClick={() => setMobileMenuOpen(false)}>Surveys</Link></li>
                     <li><Link to="/training" onClick={() => setMobileMenuOpen(false)}>Training</Link></li>
                     <li><Link to="/articles" onClick={() => setMobileMenuOpen(false)}>Articles</Link></li>
                     <li><Link to="/media" onClick={() => setMobileMenuOpen(false)}>Media</Link></li>

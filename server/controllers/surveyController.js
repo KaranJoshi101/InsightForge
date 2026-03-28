@@ -17,17 +17,22 @@ const getAllSurveys = async (req, res, next) => {
         const { page = 1, limit = 10, status } = req.query;
         const offset = (page - 1) * limit;
 
-        let query = 'SELECT * FROM surveys';
-        let countQuery = 'SELECT COUNT(*) FROM surveys';
+        let query = `SELECT s.*, EXISTS (
+                        SELECT 1
+                        FROM media_posts mp
+                        WHERE mp.survey_id = s.id
+                     ) AS is_feedback
+                     FROM surveys s`;
+        let countQuery = 'SELECT COUNT(*) FROM surveys s';
         const params = [];
 
         if (status) {
-            query += ' WHERE status = $1';
-            countQuery += ' WHERE status = $1';
+            query += ' WHERE s.status = $1';
+            countQuery += ' WHERE s.status = $1';
             params.push(status);
         }
 
-        query += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+        query += ' ORDER BY s.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
 
         const surveys = await pool.query(query, [...params, limit, offset]);
         const countResult = await pool.query(countQuery, params);

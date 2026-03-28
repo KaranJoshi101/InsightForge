@@ -22,8 +22,58 @@ const trainingService = {
     },
 
     // Playlist methods
+    getPublicCategories() {
+        return api.get('/training/categories');
+    },
+
+    getCategoryNotes(categoryId) {
+        return api.get(`/training/categories/${categoryId}/notes`);
+    },
+
     getPublicPlaylists() {
         return api.get('/training/playlists');
+    },
+
+    getAdminCategories() {
+        return api.get('/training/admin/categories');
+    },
+
+    createCategory(payload) {
+        return api.post('/training/admin/categories', payload);
+    },
+
+    updateCategory(id, payload) {
+        return api.put(`/training/admin/categories/${id}`, payload);
+    },
+
+    deleteCategory(id) {
+        return api.delete(`/training/admin/categories/${id}`);
+    },
+
+    getAdminCategoryNotes(categoryId) {
+        return api.get(`/training/admin/categories/${categoryId}/notes`);
+    },
+
+    createCategoryNote(categoryId, payload) {
+        return api.post(`/training/admin/categories/${categoryId}/notes`, payload);
+    },
+
+    uploadCategoryNoteDocument(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/training/admin/notes/upload-document', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    },
+
+    updateCategoryNote(id, payload) {
+        return api.put(`/training/admin/notes/${id}`, payload);
+    },
+
+    deleteCategoryNote(id) {
+        return api.delete(`/training/admin/notes/${id}`);
     },
 
     getAdminPlaylists(page = 1, limit = 20) {

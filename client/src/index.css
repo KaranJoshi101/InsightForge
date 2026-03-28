@@ -1,3 +1,263 @@
+/* === UI/UX ELEVATION PATCH === */
+
+/* --- Typography Hierarchy --- */
+h1, .h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 20px;
+}
+h2, .h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+h3, .h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.subtitle, .page-header-subtitle {
+    color: #5f6b7a;
+    font-size: 1.08rem;
+    font-weight: 400;
+    margin-bottom: 8px;
+}
+
+/* --- Card Polish --- */
+.card, .survey-card, .admin-table-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 53, 148, 0.07), 0 1.5px 4px rgba(0,0,0,0.03);
+    border: 1px solid #e3e8f0;
+    background: #fff;
+    padding: 0;
+    transition: box-shadow 0.22s cubic-bezier(.4,0,.2,1);
+}
+.card-body, .survey-card .card-body {
+    padding: 32px 28px;
+}
+.card-header {
+    padding: 20px 28px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    border-bottom: 1px solid #e3e8f0;
+    background: #f7f9fd;
+    color: #003594;
+}
+.card-footer {
+    padding: 18px 28px;
+    border-top: 1px solid #e3e8f0;
+}
+
+/* --- Button Standardization --- */
+.btn, .admin-category-action-btn {
+    min-width: 110px;
+    min-height: 40px;
+    padding: 0 22px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 7px;
+    border: none;
+    box-shadow: 0 1.5px 4px rgba(0,53,148,0.04);
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s;
+    outline: none;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+}
+.btn:focus-visible, .admin-category-action-btn:focus-visible {
+    box-shadow: 0 0 0 3px #FFB81C55;
+}
+.btn:hover:not(:disabled), .admin-category-action-btn:hover:not(:disabled) {
+    filter: brightness(0.97);
+    transform: translateY(-1.5px) scale(1.025);
+    box-shadow: 0 4px 16px rgba(0,53,148,0.10);
+}
+.btn:active, .admin-category-action-btn:active {
+    filter: brightness(0.93);
+    transform: scale(0.98);
+}
+.btn:disabled, .admin-category-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.btn-sm, .admin-category-action-btn.btn-sm {
+    min-width: 80px;
+    min-height: 32px;
+    padding: 0 14px;
+    font-size: 0.92rem;
+}
+
+/* --- Table Polish --- */
+table, .admin-table {
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    border-collapse: separate;
+    border-spacing: 0;
+    box-shadow: 0 1.5px 4px rgba(0,53,148,0.04);
+}
+th, .admin-table th {
+    background: #f7f9fd;
+    color: #003594;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 16px 20px;
+    border-bottom: 1.5px solid #e3e8f0;
+    letter-spacing: 0.01em;
+}
+td, .admin-table td {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e3e8f0;
+    font-size: 1rem;
+    color: #2B2B2B;
+}
+tr:last-child td {
+    border-bottom: none;
+}
+tr:hover td {
+    background: #f0f5ff;
+}
+
+/* --- Form Polish --- */
+.form-group {
+    margin-bottom: 22px;
+}
+label {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 7px;
+    color: #003594;
+    letter-spacing: 0.01em;
+}
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='tel'],
+textarea,
+select {
+    padding: 13px 16px;
+    border-radius: 7px;
+    border: 2px solid #e3e8f0;
+    font-size: 1rem;
+    background: #fff;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+input:focus, textarea:focus, select:focus {
+    border-color: #003594;
+    box-shadow: 0 0 0 3px #00359422;
+}
+
+/* --- Spacing & Layout --- */
+.container, .page-shell-wide {
+    padding-left: 32px;
+    padding-right: 32px;
+}
+.page-header, .admin-page-header {
+    padding: 36px 36px 24px 36px;
+    border-radius: 14px;
+    margin-bottom: 36px;
+    background: linear-gradient(135deg, #003594 0%, #001a4a 100%);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(0,53,148,0.07);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+}
+.page-header h1, .admin-page-header h1 {
+    font-size: 2.1rem;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+}
+.admin-page-actions {
+    gap: 12px;
+}
+
+/* --- Micro-interactions --- */
+.card, .survey-card, .admin-table-card, .admin-management-link {
+    transition: box-shadow 0.22s cubic-bezier(.4,0,.2,1), transform 0.18s;
+}
+.card:hover, .survey-card:hover, .admin-table-card:hover, .admin-management-link:hover {
+    box-shadow: 0 8px 32px rgba(0,53,148,0.13);
+    transform: translateY(-2px) scale(1.01);
+}
+
+/* --- Chip Polish --- */
+.admin-chip {
+    padding: 7px 14px;
+    font-size: 0.97rem;
+    font-weight: 700;
+    border-radius: 999px;
+    background: #f7f9fd;
+    color: #003594;
+    margin-right: 6px;
+}
+
+/* --- Misc --- */
+.gap-1 { gap: 12px; }
+.gap-2 { gap: 20px; }
+.gap-3 { gap: 32px; }
+.gap-4 { gap: 48px; }
+.mt-1 { margin-top: 12px; }
+.mt-2 { margin-top: 20px; }
+.mt-3 { margin-top: 32px; }
+.mt-4 { margin-top: 48px; }
+.mb-1 { margin-bottom: 12px; }
+.mb-2 { margin-bottom: 20px; }
+.mb-3 { margin-bottom: 32px; }
+.mb-4 { margin-bottom: 48px; }
+
+@media (max-width: 1024px) {
+    .container, .page-shell-wide {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    .card-body, .survey-card .card-body {
+        padding: 20px 10px;
+    }
+    .page-header, .admin-page-header {
+        padding: 24px 10px 16px 10px;
+    }
+}
+
+/* === END UI/UX ELEVATION PATCH === */
+/* Admin Category Action Buttons */
+.admin-category-action-btn {
+    padding: 8px 18px;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    cursor: pointer;
+    display: inline-block;
+}
+.admin-category-action-btn.edit {
+    background-color: #1976D2;
+    color: #fff;
+}
+.admin-category-action-btn.delete {
+    background-color: #D32F2F;
+    color: #fff;
+}
+.admin-category-action-btn.publish {
+    background-color: #43a047;
+    color: #fff;
+}
+.admin-category-action-btn.unpublish {
+    background-color: #FFD600;
+    color: #17408B;
+}
+.admin-category-action-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
 /* ===== GLOBAL STYLES — Academic Color System =====
    Primary:    #003594 (Royal Blue)
    Accent:     #FFB81C (Gold)
@@ -35,7 +295,7 @@ code {
 
 /* Layout */
 .container {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 0 24px;
 }
@@ -569,10 +829,40 @@ tr:hover td {
 }
 
 .admin-chart-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
+    display: flex;
+    flex-direction: row;
+    gap: 32px;
     margin-bottom: 32px;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.admin-chart-grid .card {
+    flex: 1 1 340px;
+    max-width: 370px;
+    min-width: 340px;
+    min-height: 540px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.admin-chart-grid .card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.admin-chart-grid .card-body > div[style*="height: 340px"] {
+    height: 340px !important;
+    min-height: 340px !important;
+    max-height: 340px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .admin-management-grid {
@@ -612,6 +902,10 @@ tr:hover td {
     gap: 10px;
     margin-bottom: 16px;
     flex-wrap: wrap;
+    min-height: 64px;
+    max-height: 64px;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .admin-chip {
@@ -636,6 +930,14 @@ tr:hover td {
     color: #8a6d00;
 }
 
+.admin-chart-note {
+    margin-top: 10px;
+    margin-bottom: 0;
+    font-size: 0.86rem;
+    color: #5f6b7a;
+    text-align: center;
+}
+
 .admin-table-card {
     overflow-x: auto;
 }
@@ -655,13 +957,24 @@ tr:hover td {
     gap: 6px;
 }
 
-@media (max-width: 1024px) {
-    .admin-stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
+@media (max-width: 1600px) {
     .admin-chart-grid {
-        grid-template-columns: 1fr;
+        flex-wrap: wrap;
+    }
+    .admin-chart-grid .card {
+        min-width: 320px;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 1024px) {
+    .admin-chart-grid {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .admin-chart-grid .card {
+        min-width: 0;
+        max-width: 100%;
     }
 }
 
@@ -744,6 +1057,63 @@ tr:hover td {
 .survey-meta-chip.accent {
     background-color: #fff8e1;
     color: #8a6d00;
+}
+
+.market-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.market-search-input {
+    width: 100%;
+    max-width: 460px;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: #ffffff;
+}
+
+.market-search-input:focus {
+    outline: none;
+    border-color: #003594;
+    box-shadow: 0 0 0 3px rgba(0, 53, 148, 0.12);
+}
+
+.submission-pill {
+    margin-top: auto;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 9px 12px;
+    background-color: #e8f8f0;
+    color: #1a6e42;
+    border: 1px solid #bfe5cf;
+}
+
+.response-type-chip {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 3px 10px;
+}
+
+.response-type-chip.survey {
+    background-color: #e7efff;
+    color: #003594;
+    border: 1px solid #cfe0ff;
+}
+
+.response-type-chip.feedback {
+    background-color: #fff1c7;
+    color: #8a6d00;
+    border: 1px solid #ffe1a3;
 }
 
 .survey-question-card {
@@ -935,6 +1305,14 @@ tr:hover td {
     .responses-header {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .market-toolbar {
+        align-items: stretch;
+    }
+
+    .market-search-input {
+        max-width: 100%;
     }
 
     .response-list-top {

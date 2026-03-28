@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
+import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import BackLink from '../components/BackLink';
@@ -11,9 +12,9 @@ const SurveysPage = () => {
     const [surveys, setSurveys] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(0);
+    const [searchTerm, setSearchTerm] = useState('');
     const [submittedSurveys, setSubmittedSurveys] = useState(new Map());
+    const [feedbackSurveyIds, setFeedbackSurveyIds] = useState(new Set());
 
     const formatSubmittedAt = (submittedAt) => {
         if (!submittedAt) {
@@ -49,18 +50,34 @@ const SurveysPage = () => {
             });
 
             setSubmittedSurveys(submissionMap);
-        } catch (err) {
-            // Silently fail if endpoint not available
-            console.error('Failed to load user responses:', err);
+        } catch (_err) {
+            // Optional enhancement data; keep page usable when unavailable.
         }
     }, [isAuthenticated]);
 
     const fetchSurveys = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await surveyService.getAllSurveys(page, 10, 'published');
-            setSurveys(response.data.surveys);
-            setTotalPages(response.data.pagination.pages);
+            const [surveyResult, mediaResult] = await Promise.allSettled([
+                surveyService.getAllSurveys(1, 500, 'published'),
+                api.get('/media', { params: { limit: 500 } }),
+            ]);
+
+            if (surveyResult.status !== 'fulfilled') {
+                throw surveyResult.reason;
+            }
+
+            setSurveys(surveyResult.value.data.surveys);
+
+            const posts = mediaResult.status === 'fulfilled' && Array.isArray(mediaResult.value.data?.posts)
+                ? mediaResult.value.data.posts
+                : [];
+            const linkedSurveyIds = new Set(
+                posts
+                    .map((post) => Number(post.survey_id))
+                    .filter((surveyId) => Number.isInteger(surveyId) && surveyId > 0)
+            );
+            setFeedbackSurveyIds(linkedSurveyIds);
             setError('');
         } catch (err) {
             setError('Failed to load surveys');
@@ -68,7 +85,91 @@ const SurveysPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [page]);
+    }, []);
+
+    const filteredSurveys = useMemo(() => {
+        const normalized = searchTerm.trim().toLowerCase();
+        if (!normalized) {
+            return surveys;
+        }
+
+        return surveys.filter((survey) =>
+            String(survey.title || '').toLowerCase().includes(normalized)
+        );
+    }, [surveys, searchTerm]);
+
+    const pureSurveys = useMemo(() => {
+        return filteredSurveys.filter((survey) => {
+            const id = Number(survey.id);
+            return !Boolean(survey.is_feedback) && !feedbackSurveyIds.has(id);
+        });
+    }, [filteredSurveys, feedbackSurveyIds]);
+
+    const renderSurveyCards = (list, palette) => {
+        if (list.length === 0) {
+            return null;
+        }
+
+        return (
+            <section style={{ marginBottom: '28px' }}>
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gap: '20px',
+                    }}
+                >
+                    {list.map((survey) => (
+                        <div
+                            key={survey.id}
+                            className="survey-card"
+                            style={{
+                                backgroundColor: palette.cardBg,
+                                border: `1px solid ${palette.border}`,
+                                boxShadow: `0 6px 18px ${palette.shadow}`,
+                            }}
+                        >
+                            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', minHeight: '190px' }}>
+                                <h3 style={{ color: palette.heading }}>{survey.title}</h3>
+                                <p style={{ color: '#555', marginBottom: '12px' }}>{survey.description}</p>
+                                {submittedSurveys.has(survey.id) ? (
+                                    <>
+                                        <div className="submission-pill">Submitted</div>
+                                        <div
+                                            style={{
+                                                marginTop: '10px',
+                                                fontSize: '0.85rem',
+                                                color: '#1a6e42',
+                                                backgroundColor: '#e8f8f0',
+                                                borderRadius: '6px',
+                                                padding: '6px 10px',
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            Submitted on {formatSubmittedAt(submittedSurveys.get(survey.id)) || 'N/A'}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <Link
+                                        to={`/surveys/${survey.id}`}
+                                        className="btn btn-primary btn-block"
+                                        style={{
+                                            marginTop: 'auto',
+                                            textAlign: 'center',
+                                            backgroundColor: palette.buttonBg,
+                                            borderColor: palette.buttonBg,
+                                        }}
+                                    >
+                                        View & Take
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        );
+    };
 
     useEffect(() => {
         fetchSurveys();
@@ -89,102 +190,44 @@ const SurveysPage = () => {
                 Explore and take surveys to share your feedback
             </p>
 
+            <div className="market-toolbar">
+                <div className="survey-meta-row" style={{ marginBottom: 0 }}>
+                    <span className="survey-meta-chip primary">Survey: {pureSurveys.length}</span>
+                </div>
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search surveys by name"
+                    aria-label="Search surveys by name"
+                    className="market-search-input"
+                />
+            </div>
+
             {error && <div className="alert alert-danger">{error}</div>}
 
-            {surveys.length === 0 ? (
+            {pureSurveys.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                     <p style={{ fontSize: '1.1rem', color: '#555' }}>
-                        No surveys available at the moment.
+                        {surveys.length === 0
+                            ? 'No surveys available at the moment.'
+                            : filteredSurveys.length === 0
+                                ? 'No surveys match your search.'
+                                : 'No surveys available in this section.'}
                     </p>
                 </div>
             ) : (
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                        gap: '20px',
-                        marginBottom: '24px',
-                    }}
-                >
-                    {surveys.map((survey) => (
-                        <div key={survey.id} className="survey-card">
-                            <div className="card-body">
-                                <h3>{survey.title}</h3>
-                                <p style={{ color: '#555', marginBottom: '12px' }}>
-                                    {survey.description}
-                                </p>
-                                <p style={{ fontSize: '0.9rem', color: '#999', marginBottom: '16px' }}>
-                                    Status:{' '}
-                                    <span
-                                        style={{
-                                            backgroundColor:
-                                                survey.status === 'published' ? '#e8f8f0' : '#fff8e1',
-                                            color: survey.status === 'published' ? '#1a6e42' : '#8a6d00',
-                                            padding: '2px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.85rem',
-                                        }}
-                                    >
-                                        {survey.status}
-                                    </span>
-                                </p>
-                                {submittedSurveys.has(survey.id) ? (
-                                    <>
-                                        <button
-                                            disabled
-                                            className="btn btn-success btn-block"
-                                            style={{ marginTop: 'auto', textAlign: 'center', opacity: 0.6 }}
-                                        >
-                                            ✓ Submitted
-                                        </button>
-                                        <div
-                                            style={{
-                                                marginTop: '10px',
-                                                fontSize: '0.85rem',
-                                                color: '#1a6e42',
-                                                backgroundColor: '#e8f8f0',
-                                                borderRadius: '6px',
-                                                padding: '6px 10px',
-                                                textAlign: 'center',
-                                            }}
-                                        >
-                                            Submitted on {formatSubmittedAt(submittedSurveys.get(survey.id)) || 'N/A'}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <Link
-                                        to={`/surveys/${survey.id}`}
-                                        className="btn btn-primary btn-block"
-                                        style={{ marginTop: 'auto', textAlign: 'center' }}
-                                    >
-                                        View & Take
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <>
+                    {renderSurveyCards(pureSurveys, {
+                        heading: '#003594',
+                        cardBg: '#eef5ff',
+                        border: '#cfe0ff',
+                        shadow: 'rgba(0, 53, 148, 0.12)',
+                        buttonBg: '#003594',
+                    })}
+                </>
             )}
 
-            {totalPages > 1 && (
-                <div className="pagination">
-                    <button
-                        onClick={() => setPage(Math.max(1, page - 1))}
-                        disabled={page === 1}
-                    >
-                        Previous
-                    </button>
-                    <span style={{ padding: '6px 12px' }}>
-                        Page {page} of {totalPages}
-                    </span>
-                    <button
-                        onClick={() => setPage(Math.min(totalPages, page + 1))}
-                        disabled={page === totalPages}
-                    >
-                        Next
-                    </button>
-                </div>
-            )}
         </div>
     );
 };

@@ -10,6 +10,7 @@ import {
 } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import userService from '../services/userService';
+import trainingService from '../services/trainingService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 ChartJS.register(
@@ -39,45 +40,61 @@ const AdminDashboardPage = () => {
         fetchStats();
     }, []);
 
-    const doughnutChartData = dashboardStats ? {
-        labels: dashboardStats.survey_status_distribution.map((s) =>
-            s.status.charAt(0).toUpperCase() + s.status.slice(1)
-        ),
+    const surveyCategoryStatusDist = dashboardStats?.survey_category_status_distribution || [];
+    const articleCategoryStatusDist = dashboardStats?.article_category_status_distribution || [];
+
+    const getBucketCount = (rows, category, status) => {
+        const entry = rows.find((row) => row.category === category && row.status === status);
+        return entry ? Number(entry.count) : 0;
+    };
+
+    const surveyChartSlices = [
+        { label: 'Survey', value: getBucketCount(surveyCategoryStatusDist, 'survey', 'published'), color: '#3B82F6' },
+        { label: 'Draft', value: getBucketCount(surveyCategoryStatusDist, 'survey', 'draft'), color: '#93C5FD' },
+        { label: 'Feedback', value: getBucketCount(surveyCategoryStatusDist, 'feedback', 'published'), color: '#F59E0B' },
+    ];
+
+    const articleChartSlices = [
+        { label: 'Article', value: getBucketCount(articleCategoryStatusDist, 'article', 'published'), color: '#3B82F6' },
+        { label: 'Draft', value: getBucketCount(articleCategoryStatusDist, 'article', 'draft'), color: '#93C5FD' },
+        { label: 'Talks', value: getBucketCount(articleCategoryStatusDist, 'talks_summary', 'published'), color: '#F59E0B' },
+    ];
+
+    const surveyCategoryChartData = dashboardStats ? {
+        labels: surveyChartSlices.map((slice) => slice.label),
         datasets: [{
-            data: dashboardStats.survey_status_distribution.map((s) => s.count),
-            backgroundColor: ['#FFB81C', '#27ae60', '#6c757d'],
+            data: surveyChartSlices.map((slice) => slice.value),
+            backgroundColor: surveyChartSlices.map((slice) => slice.color),
             borderWidth: 2,
         }],
     } : null;
 
-    const doughnutChartOptions = {
+    const surveyCategoryChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '62%',
         plugins: {
             legend: { position: 'bottom' },
-            title: { display: true, text: 'Survey Status Distribution' },
+            title: { display: true, text: 'Survey Category Distribution' },
         },
     };
 
-    const articleStatusChartData = dashboardStats ? {
-        labels: dashboardStats.article_status_distribution.map((a) =>
-            a.status.charAt(0).toUpperCase() + a.status.slice(1)
-        ),
+    const articleCategoryChartData = dashboardStats ? {
+        labels: articleChartSlices.map((slice) => slice.label),
         datasets: [{
-            data: dashboardStats.article_status_distribution.map((a) => a.count),
-            backgroundColor: ['#27ae60', '#FFB81C'],
+            data: articleChartSlices.map((slice) => slice.value),
+            backgroundColor: articleChartSlices.map((slice) => slice.color),
             borderWidth: 2,
         }],
     } : null;
 
-    const articleStatusChartOptions = {
+    const articleCategoryChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '62%',
         plugins: {
             legend: { position: 'bottom' },
-            title: { display: true, text: 'Article Status Distribution' },
+            title: { display: true, text: 'Article Category Distribution' },
         },
     };
 
@@ -103,83 +120,106 @@ const AdminDashboardPage = () => {
         },
     };
 
-    const mediaStatusChartData = dashboardStats ? {
-        labels: dashboardStats.media_status_distribution.map((m) =>
-            m.status.charAt(0).toUpperCase() + m.status.slice(1)
-        ),
+    // Training category chart (by status)
+    const trainingCategoryStatusDist = dashboardStats?.training_category_status_distribution || [];
+    const getCategoryStatusCount = (status) => {
+        const entry = trainingCategoryStatusDist.find((row) => row.status === status);
+        return entry ? Number(entry.count) : 0;
+    };
+    const trainingCategoryChartData = dashboardStats ? {
+        labels: ['Public', 'Draft'],
         datasets: [{
-            data: dashboardStats.media_status_distribution.map((m) => m.count),
-            backgroundColor: ['#3B82F6', '#FFB81C'],
+            data: [getCategoryStatusCount('public'), getCategoryStatusCount('draft')],
+            backgroundColor: ['#3B82F6', '#F59E0B'],
             borderWidth: 2,
         }],
     } : null;
-
-    const mediaStatusChartOptions = {
+    const trainingCategoryChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '62%',
         plugins: {
             legend: { position: 'bottom' },
-            title: { display: true, text: 'Media Status Distribution' },
+            title: { display: true, text: 'Training Category Status Distribution' },
         },
     };
 
-    const trainingVideoStatusChartData = dashboardStats ? {
-        labels: dashboardStats.training_video_status_distribution.map((t) =>
-            t.status.charAt(0).toUpperCase() + t.status.slice(1)
-        ),
-        datasets: [{
-            data: dashboardStats.training_video_status_distribution.map((t) => t.count),
-            backgroundColor: ['#27ae60', '#c0392b'],
-            borderWidth: 2,
-        }],
-    } : null;
+    const surveyCategoryCounts = dashboardStats
+        ? dashboardStats.survey_category_distribution.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.category === 'survey') acc.survey += item.count;
+            if (item.category === 'feedback') acc.feedback += item.count;
+            return acc;
+        }, { total: 0, survey: 0, feedback: 0 })
+        : { total: 0, survey: 0, feedback: 0 };
 
-    const trainingVideoStatusChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '62%',
-        plugins: {
-            legend: { position: 'bottom' },
-            title: { display: true, text: 'Training Video Status Distribution' },
-        },
+    const surveyDraftCounts = dashboardStats
+        ? surveyCategoryStatusDist.reduce((acc, item) => {
+            if (item.status === 'published') acc.published += item.count;
+            if (item.status === 'draft') acc.draft += item.count;
+            return acc;
+        }, { published: 0, draft: 0 })
+        : { published: 0, draft: 0 };
+
+    const articleCategoryCounts = dashboardStats
+        ? dashboardStats.article_category_distribution.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.category === 'article') acc.article += item.count;
+            if (item.category === 'talks_summary') acc.talks_summary += item.count;
+            return acc;
+        }, { total: 0, article: 0, talks_summary: 0 })
+        : { total: 0, article: 0, talks_summary: 0 };
+
+    const articleDraftCounts = dashboardStats
+        ? articleCategoryStatusDist.reduce((acc, item) => {
+            if (item.status === 'published') acc.published += item.count;
+            if (item.status === 'draft') acc.draft += item.count;
+            return acc;
+        }, { published: 0, draft: 0 })
+        : { published: 0, draft: 0 };
+
+    const trainingCategoryCounts = dashboardStats
+        ? trainingCategoryStatusDist.reduce((acc, item) => {
+            acc.total += item.count;
+            if (item.status === 'public') acc.public += item.count;
+            if (item.status === 'draft') acc.draft += item.count;
+            return acc;
+        }, { total: 0, public: 0, draft: 0 })
+        : { total: 0, public: 0, draft: 0 };
+
+    // Training category admin list and toggle
+    const [categories, setCategories] = useState([]);
+    const [catLoading, setCatLoading] = useState(false);
+    const [catError, setCatError] = useState(null);
+    const [catUpdating, setCatUpdating] = useState({});
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            setCatLoading(true);
+            setCatError(null);
+            try {
+                const res = await trainingService.getAdminCategories();
+                setCategories(res.data.categories || []);
+            } catch (err) {
+                setCatError('Failed to load training categories');
+            } finally {
+                setCatLoading(false);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    const handleToggleCategory = async (cat) => {
+        setCatUpdating((prev) => ({ ...prev, [cat.id]: true }));
+        try {
+            await trainingService.updateCategory(cat.id, { is_active: !cat.is_active });
+            setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: !cat.is_active } : c));
+        } catch (err) {
+            alert('Failed to update category status');
+        } finally {
+            setCatUpdating((prev) => ({ ...prev, [cat.id]: false }));
+        }
     };
-
-    const surveyCounts = dashboardStats
-        ? dashboardStats.survey_status_distribution.reduce((acc, item) => {
-            acc.total += item.count;
-            if (item.status === 'published') acc.published += item.count;
-            if (item.status === 'draft') acc.draft += item.count;
-            return acc;
-        }, { total: 0, published: 0, draft: 0 })
-        : { total: 0, published: 0, draft: 0 };
-
-    const articleCounts = dashboardStats
-        ? dashboardStats.article_status_distribution.reduce((acc, item) => {
-            acc.total += item.count;
-            if (item.status === 'published') acc.published += item.count;
-            if (item.status === 'draft') acc.draft += item.count;
-            return acc;
-        }, { total: 0, published: 0, draft: 0 })
-        : { total: 0, published: 0, draft: 0 };
-
-    const mediaCounts = dashboardStats
-        ? dashboardStats.media_status_distribution.reduce((acc, item) => {
-            acc.total += item.count;
-            if (item.status === 'linked') acc.linked += item.count;
-            if (item.status === 'standalone') acc.standalone += item.count;
-            return acc;
-        }, { total: 0, linked: 0, standalone: 0 })
-        : { total: 0, linked: 0, standalone: 0 };
-
-    const trainingVideoCounts = dashboardStats
-        ? dashboardStats.training_video_status_distribution.reduce((acc, item) => {
-            acc.total += item.count;
-            if (item.status === 'active') acc.active += item.count;
-            if (item.status === 'inactive') acc.inactive += item.count;
-            return acc;
-        }, { total: 0, active: 0, inactive: 0 })
-        : { total: 0, active: 0, inactive: 0 };
 
     if (statsLoading) {
         return <LoadingSpinner fullScreen={false} />;
@@ -199,16 +239,20 @@ const AdminDashboardPage = () => {
                 <div className="admin-chart-grid">
                     <div className="card">
                         <div className="card-body">
-                            <h2>Survey Status</h2>
+                            <h2>Survey Categories</h2>
                             <div className="admin-chip-row">
-                                <span className="admin-chip total">Total: {surveyCounts.total}</span>
-                                <span className="admin-chip published">Published: {surveyCounts.published}</span>
-                                <span className="admin-chip draft">Draft: {surveyCounts.draft}</span>
+                                <span className="admin-chip total">Total: {surveyCategoryCounts.survey + surveyCategoryCounts.feedback}</span>
+                                <span className="admin-chip published">Survey: {getBucketCount(surveyCategoryStatusDist, 'survey', 'published')}</span>
+                                <span className="admin-chip draft">Feedback: {surveyCategoryCounts.feedback}</span>
+                                <span className="admin-chip draft">Draft: {surveyDraftCounts.draft}</span>
                             </div>
-                            {doughnutChartData && doughnutChartData.labels.length > 0 ? (
-                                <div style={{ height: '340px' }}>
-                                    <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
-                                </div>
+                            {surveyCategoryChartData && surveyCategoryChartData.labels.length > 0 ? (
+                                <>
+                                    <div style={{ height: '340px' }}>
+                                        <Doughnut data={surveyCategoryChartData} options={surveyCategoryChartOptions} />
+                                    </div>
+                                    {/* legend note removed */}
+                                </>
                             ) : (
                                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
                                     No surveys created yet
@@ -237,16 +281,20 @@ const AdminDashboardPage = () => {
                     </div>
                     <div className="card">
                         <div className="card-body">
-                            <h2>Article Status</h2>
+                            <h2>Article Categories</h2>
                             <div className="admin-chip-row">
-                                <span className="admin-chip total">Total: {articleCounts.total}</span>
-                                <span className="admin-chip published">Published: {articleCounts.published}</span>
-                                <span className="admin-chip draft">Draft: {articleCounts.draft}</span>
+                                <span className="admin-chip total">Total: {articleCategoryCounts.article + articleCategoryCounts.talks_summary}</span>
+                                <span className="admin-chip published">Article: {getBucketCount(articleCategoryStatusDist, 'article', 'published')}</span>
+                                <span className="admin-chip draft">Talks: {articleCategoryCounts.talks_summary}</span>
+                                <span className="admin-chip draft">Draft: {articleDraftCounts.draft}</span>
                             </div>
-                            {articleStatusChartData && articleStatusChartData.labels.length > 0 ? (
-                                <div style={{ height: '340px' }}>
-                                    <Doughnut data={articleStatusChartData} options={articleStatusChartOptions} />
-                                </div>
+                            {articleCategoryChartData && articleCategoryChartData.labels.length > 0 ? (
+                                <>
+                                    <div style={{ height: '340px' }}>
+                                        <Doughnut data={articleCategoryChartData} options={articleCategoryChartOptions} />
+                                    </div>
+                                    {/* legend note removed */}
+                                </>
                             ) : (
                                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
                                     No articles created yet
@@ -256,40 +304,22 @@ const AdminDashboardPage = () => {
                     </div>
                     <div className="card">
                         <div className="card-body">
-                            <h2>Media Status</h2>
+                            <h2>Training Categories</h2>
                             <div className="admin-chip-row">
-                                <span className="admin-chip total">Total: {mediaCounts.total}</span>
-                                <span className="admin-chip published">Linked: {mediaCounts.linked}</span>
-                                <span className="admin-chip draft">Standalone: {mediaCounts.standalone}</span>
+                                <span className="admin-chip total">Total: {trainingCategoryCounts.total}</span>
+                                <span className="admin-chip published">Public: {trainingCategoryCounts.public}</span>
+                                <span className="admin-chip draft">Draft: {trainingCategoryCounts.draft}</span>
                             </div>
-                            {mediaStatusChartData && mediaStatusChartData.labels.length > 0 ? (
+                            {trainingCategoryChartData && trainingCategoryChartData.labels.length > 0 ? (
                                 <div style={{ height: '340px' }}>
-                                    <Doughnut data={mediaStatusChartData} options={mediaStatusChartOptions} />
+                                    <Doughnut data={trainingCategoryChartData} options={trainingCategoryChartOptions} />
                                 </div>
                             ) : (
                                 <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
-                                    No media posts created yet
+                                    No training categories created yet
                                 </p>
                             )}
-                        </div>
-                    </div>
-                    <div className="card">
-                        <div className="card-body">
-                            <h2>Training Video Status</h2>
-                            <div className="admin-chip-row">
-                                <span className="admin-chip total">Total: {trainingVideoCounts.total}</span>
-                                <span className="admin-chip published">Active: {trainingVideoCounts.active}</span>
-                                <span className="admin-chip draft">Inactive: {trainingVideoCounts.inactive}</span>
-                            </div>
-                            {trainingVideoStatusChartData && trainingVideoStatusChartData.labels.length > 0 ? (
-                                <div style={{ height: '340px' }}>
-                                    <Doughnut data={trainingVideoStatusChartData} options={trainingVideoStatusChartOptions} />
-                                </div>
-                            ) : (
-                                <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>
-                                    No training videos created yet
-                                </p>
-                            )}
+                            {/* Category status toggle removed; now managed in Manage Training page */}
                         </div>
                     </div>
                 </div>
@@ -316,8 +346,8 @@ const AdminDashboardPage = () => {
                             <span>Create and curate media feed cards and linked content.</span>
                         </Link>
                         <Link to="/admin/training" className="admin-management-link">
-                            <strong>Manage Training Videos</strong>
-                            <span>Add YouTube lessons shown in the public training section.</span>
+                            <strong>Manage Training Categories</strong>
+                            <span>Add YouTube lessons and Notes shown in the public training section.</span>
                         </Link>
                     </div>
                 </div>

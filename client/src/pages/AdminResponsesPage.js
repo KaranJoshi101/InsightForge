@@ -60,8 +60,8 @@ const AdminResponsesPage = () => {
             try {
                 const analyticsData = await responseService.getSurveyAnalytics(survey.id);
                 setAnalytics(analyticsData.data);
-            } catch (err) {
-                console.log('Analytics not available');
+            } catch (_err) {
+                // Analytics endpoint is optional; continue showing responses table.
             }
         } catch (err) {
             setError('Failed to load responses');

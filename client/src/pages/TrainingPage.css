@@ -392,6 +392,175 @@
     letter-spacing: 0.2px;
 }
 
+/* Light Catalog Panel (Category / Section cards) — Using Project Color System */
+.training-catalog-panel {
+    background: var(--tp-bg-white);
+    border: 1px solid var(--tp-border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    margin-bottom: 24px;
+}
+
+.training-catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.training-catalog-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.training-catalog-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(0, 53, 148, 0.02) 0%, rgba(255, 184, 28, 0.02) 100%);
+    border: 1px solid var(--tp-border);
+    border-radius: 10px;
+    padding: 14px;
+    min-height: 78px;
+    cursor: pointer;
+    transition: border-color 0.22s ease, transform 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+}
+
+.training-catalog-card:hover {
+    border-color: var(--tp-accent);
+    background: linear-gradient(180deg, rgba(0, 53, 148, 0.04) 0%, rgba(255, 184, 28, 0.03) 100%);
+    box-shadow: 0 4px 12px rgba(0, 53, 148, 0.08);
+    transform: translateY(-2px);
+}
+
+.training-catalog-card--active {
+    border-color: var(--tp-primary);
+    background: linear-gradient(180deg, rgba(0, 53, 148, 0.07) 0%, rgba(255, 184, 28, 0.05) 100%);
+    box-shadow: 0 6px 16px rgba(0, 53, 148, 0.12);
+}
+
+.training-catalog-card--active .training-catalog-card-arrow {
+    color: var(--tp-primary);
+}
+
+.training-catalog-card-icon {
+    min-width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--tp-primary) 0%, rgba(0, 53, 148, 0.7) 100%);
+    color: var(--tp-bg-white);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 0 6px;
+}
+
+.training-catalog-card-body {
+    min-width: 0;
+}
+
+.training-catalog-card-body h3 {
+    margin: 0 0 4px 0;
+    font-family: 'Merriweather', Georgia, serif;
+    color: var(--tp-primary);
+    font-size: 1rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.training-catalog-card-body p {
+    margin: 0;
+    color: var(--tp-text-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.training-catalog-card-arrow {
+    color: var(--tp-accent);
+    font-size: 1.1rem;
+    font-weight: 700;
+    opacity: 0.9;
+}
+
+/* File cards for notes */
+.training-file-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.training-file-card {
+    background: #ffffff;
+    border: 1px solid #d6deea;
+    border-radius: 12px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.training-file-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef4ff;
+    color: #0c3f9f;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.training-file-meta strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #1b2f57;
+    font-size: 0.95rem;
+}
+
+.training-file-meta p {
+    margin: 0;
+    white-space: pre-wrap;
+    color: #4a5a76;
+    font-size: 0.87rem;
+    line-height: 1.5;
+}
+
+.training-file-action {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    margin-top: 10px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid #c6d5f7;
+    background: #f5f9ff;
+    color: #063f9e;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.training-file-action:hover {
+    border-color: #8ab0ff;
+    background: #ebf3ff;
+}
+
 /* Loading Skeleton */
 .skeleton-card {
     pointer-events: none;
@@ -458,6 +627,10 @@
         width: 100%;
         height: auto;
     }
+
+    .training-catalog-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -487,6 +660,19 @@
 
     .playlist-detail-head h2 {
         width: 100%;
+    }
+
+    .training-catalog-panel {
+        padding: 14px;
+    }
+
+    .training-catalog-card {
+        min-height: 72px;
+        padding: 12px;
+    }
+
+    .training-file-grid {
+        grid-template-columns: 1fr;
     }
 
     .training-pill {

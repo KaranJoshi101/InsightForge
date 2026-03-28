@@ -334,8 +334,8 @@ const MediaGrid = ({ title = 'Media Feed', limit = 50, clickable = false, adminM
         }
     };
 
-    // No posts message
-    if (!loading && posts.length === 0 && !error) {
+    // No posts message (public mode only)
+    if (!loading && posts.length === 0 && !error && !showAdminControls) {
         return (
             <div className="media-grid-empty">
                 <p>No media posts available yet.</p>
@@ -343,8 +343,8 @@ const MediaGrid = ({ title = 'Media Feed', limit = 50, clickable = false, adminM
         );
     }
 
-    // Error state
-    if (error && !loading) {
+    // Error state (public mode only)
+    if (error && !loading && !showAdminControls) {
         return (
             <div className="media-grid-error">
                 <p>Error loading media: {error}</p>
@@ -557,23 +557,43 @@ const MediaGrid = ({ title = 'Media Feed', limit = 50, clickable = false, adminM
             {loading ? (
                 <MediaGridSkeleton count={12} />
             ) : (
-                <div className="media-grid">
-                    {posts.map((post) => (
-                        <MediaCard
-                            key={post.id}
-                            post={post}
-                            isAdmin={showAdminControls}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            actionLoading={actionLoading}
-                            clickable={clickable}
-                            onCardClick={(postId) => {
-                                if (clickable) {
-                                    navigate(`/media/${postId}`);
-                                }
-                            }}                        />
-                    ))}
-                </div>
+                <>
+                    {showAdminControls && error && (
+                        <div className="media-grid-error" style={{ marginBottom: '16px' }}>
+                            <p>Error loading media list: {error}</p>
+                            <button
+                                className="media-grid-retry-btn"
+                                onClick={fetchMediaPosts}
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    )}
+                    {!error && posts.length === 0 ? (
+                        <div className="media-grid-empty">
+                            <p>No media posts available yet.</p>
+                        </div>
+                    ) : (
+                        <div className="media-grid">
+                            {posts.map((post) => (
+                                <MediaCard
+                                    key={post.id}
+                                    post={post}
+                                    isAdmin={showAdminControls}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                    actionLoading={actionLoading}
+                                    clickable={clickable}
+                                    onCardClick={(postId) => {
+                                        if (clickable) {
+                                            navigate(`/media/${postId}`);
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
         </>
     );

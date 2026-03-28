@@ -12,9 +12,13 @@ const AdminSurveysPage = () => {
     const [deleting, setDeleting] = useState(null);
     const [publishing, setPublishing] = useState(null);
     const [exporting, setExporting] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const publishedCount = surveys.filter((s) => s.status === 'published').length;
     const draftCount = surveys.filter((s) => s.status === 'draft').length;
+    const filteredSurveys = surveys.filter((s) =>
+        String(s.title || '').toLowerCase().includes(searchTerm.trim().toLowerCase())
+    );
 
     useEffect(() => {
         fetchSurveys();
@@ -142,9 +146,29 @@ const AdminSurveysPage = () => {
                 </span>
             </div>
 
-            {surveys.length === 0 ? (
+            <div style={{ marginBottom: '14px' }}>
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search surveys by name"
+                    aria-label="Search surveys by name"
+                    style={{
+                        width: '100%',
+                        maxWidth: '420px',
+                        padding: '10px 12px',
+                        border: '1px solid #ced4da',
+                        borderRadius: '6px',
+                        fontSize: '0.95rem',
+                    }}
+                />
+            </div>
+
+            {filteredSurveys.length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                    <p style={{ color: '#666' }}>No surveys created yet</p>
+                    <p style={{ color: '#666' }}>
+                        {surveys.length === 0 ? 'No surveys created yet' : 'No surveys match your search'}
+                    </p>
                 </div>
             ) : (
                 <div className="card admin-table-card">
@@ -159,7 +183,7 @@ const AdminSurveysPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {surveys.map((survey) => (
+                            {filteredSurveys.map((survey) => (
                                 <tr key={survey.id}>
                                     <td style={{ padding: '12px' }}>
                                         <strong>{survey.title}</strong>

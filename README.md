@@ -75,7 +75,7 @@ SERVER_PORT=5000
 NODE_ENV=development
 
 JWT_SECRET=replace_with_a_long_random_secret
-JWT_EXPIRE=7d
+JWT_EXPIRE=1h
 
 REACT_APP_API_URL=http://localhost:5000/api
 ```

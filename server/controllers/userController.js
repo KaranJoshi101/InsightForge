@@ -223,6 +223,80 @@ const getDashboardStats = async (req, res, next) => {
             GROUP BY is_published
         `);
 
+        // Survey category distribution (survey vs feedback)
+        const surveyCategoryDist = await runOptionalQuery(`
+            SELECT category, COUNT(*)::int AS count
+            FROM (
+                SELECT
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM media_posts mp
+                            WHERE mp.survey_id = s.id
+                        ) THEN 'feedback'
+                        ELSE 'survey'
+                    END AS category
+                FROM surveys s
+            ) q
+            GROUP BY category
+        `);
+
+        // Survey category + status distribution (survey/feedback with published/draft)
+        const surveyCategoryStatusDist = await runOptionalQuery(`
+            SELECT category, status, COUNT(*)::int AS count
+            FROM (
+                SELECT
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM media_posts mp
+                            WHERE mp.survey_id = s.id
+                        ) THEN 'feedback'
+                        ELSE 'survey'
+                    END AS category,
+                    COALESCE(s.status::text, 'draft') AS status
+                FROM surveys s
+            ) q
+            GROUP BY category, status
+        `);
+
+        // Article category distribution (article vs talks summary)
+        const articleCategoryDist = await runOptionalQuery(`
+            SELECT category, COUNT(*)::int AS count
+            FROM (
+                SELECT
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM media_posts mp
+                            WHERE mp.article_id = a.id
+                        ) THEN 'talks_summary'
+                        ELSE 'article'
+                    END AS category
+                FROM articles a
+            ) q
+            GROUP BY category
+        `);
+
+        // Article category + status distribution (article/talks summary with published/draft)
+        const articleCategoryStatusDist = await runOptionalQuery(`
+            SELECT category, status, COUNT(*)::int AS count
+            FROM (
+                SELECT
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM media_posts mp
+                            WHERE mp.article_id = a.id
+                        ) THEN 'talks_summary'
+                        ELSE 'article'
+                    END AS category,
+                    CASE WHEN a.is_published THEN 'published' ELSE 'draft' END AS status
+                FROM articles a
+            ) q
+            GROUP BY category, status
+        `);
+
         // Media status distribution (for doughnut chart)
         const mediaStatusDist = await runOptionalQuery(`
             SELECT
@@ -233,6 +307,15 @@ const getDashboardStats = async (req, res, next) => {
                 COUNT(*)::int AS count
             FROM media_posts
             GROUP BY 1
+        `);
+
+        // Training category status distribution (for doughnut chart)
+        const trainingCategoryStatusDist = await runOptionalQuery(`
+            SELECT
+                CASE WHEN is_active THEN 'public' ELSE 'draft' END AS status,
+                COUNT(*)::int AS count
+            FROM training_categories
+            GROUP BY is_active
         `);
 
         // Training video status distribution (for doughnut chart)
@@ -257,8 +340,13 @@ const getDashboardStats = async (req, res, next) => {
             responses_per_survey: responsesPerSurvey.rows,
             survey_status_distribution: surveyStatusDist.rows,
             article_status_distribution: articleStatusDist.rows,
+            survey_category_distribution: surveyCategoryDist.rows,
+            survey_category_status_distribution: surveyCategoryStatusDist.rows,
+            article_category_distribution: articleCategoryDist.rows,
+            article_category_status_distribution: articleCategoryStatusDist.rows,
             media_status_distribution: mediaStatusDist.rows,
             training_video_status_distribution: trainingVideoStatusDist.rows,
+            training_category_status_distribution: trainingCategoryStatusDist.rows,
             summary: {
                 total_users: totalUsers.rows[0].count,
                 total_surveys: totalSurveys.rows[0].count,

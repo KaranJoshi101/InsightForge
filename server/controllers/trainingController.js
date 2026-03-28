@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const ytpl = require('ytpl');
+const path = require('path');
 
 const clamp = (value, min, max, fallback) => {
     const parsed = parseInt(value, 10);
@@ -446,6 +447,7 @@ const deleteTrainingVideo = async (req, res, next) => {
 // Playlist functions
 const mapPlaylistRow = (row) => ({
     id: row.id,
+    category_id: row.category_id,
     name: row.name,
     description: row.description,
     display_order: row.display_order,
@@ -458,7 +460,7 @@ const mapPlaylistRow = (row) => ({
 const getPublicPlaylists = async (req, res, next) => {
     try {
         const result = await pool.query(
-            `SELECT id, name, description, display_order
+            `SELECT id, category_id, name, description, display_order
              FROM training_playlists
              WHERE is_active = true
              ORDER BY display_order ASC, id DESC`
@@ -481,7 +483,7 @@ const getAdminPlaylists = async (req, res, next) => {
 
         const [rowsResult, countResult] = await Promise.all([
             pool.query(
-                `SELECT id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at
+                `SELECT id, category_id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at
                  FROM training_playlists
                  ORDER BY display_order ASC, created_at DESC
                  LIMIT $1 OFFSET $2`,
@@ -511,7 +513,7 @@ const getPlaylistItems = async (req, res, next) => {
         const { playlistId } = req.params;
 
         const playlistResult = await pool.query(
-            'SELECT id, name, description FROM training_playlists WHERE id = $1',
+            'SELECT id, category_id, name, description FROM training_playlists WHERE id = $1',
             [playlistId]
         );
 
@@ -531,6 +533,7 @@ const getPlaylistItems = async (req, res, next) => {
         res.json({
             playlist: {
                 id: playlistResult.rows[0].id,
+                category_id: playlistResult.rows[0].category_id,
                 name: playlistResult.rows[0].name,
                 description: playlistResult.rows[0].description,
             },
@@ -544,13 +547,26 @@ const getPlaylistItems = async (req, res, next) => {
 
 const createPlaylist = async (req, res, next) => {
     try {
-        const { youtube_playlist_url } = req.body;
+        const { youtube_playlist_url, category_id } = req.body;
 
         if (!youtube_playlist_url || !String(youtube_playlist_url).trim()) {
             return res.status(400).json({ error: 'YouTube playlist URL is required' });
         }
 
         const normalizedUrl = String(youtube_playlist_url).trim();
+        const categoryId = category_id ? clamp(category_id, 1, 10000000, null) : null;
+
+        if (category_id !== undefined && !categoryId) {
+            return res.status(400).json({ error: 'category_id must be a positive integer' });
+        }
+
+        if (categoryId) {
+            const categoryCheck = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
+            if (categoryCheck.rows.length === 0) {
+                return res.status(404).json({ error: 'Training category not found' });
+            }
+        }
+
         const playlistId = parseYouTubePlaylistId(normalizedUrl);
         if (!playlistId) {
             return res.status(400).json({ error: 'Invalid YouTube playlist URL' });
@@ -586,10 +602,10 @@ const createPlaylist = async (req, res, next) => {
             await client.query('BEGIN');
 
             const playlistResult = await client.query(
-                `INSERT INTO training_playlists (name, description, youtube_playlist_url, display_order, is_active)
-                 VALUES ($1, $2, $3, 0, true)
-                 RETURNING id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at`,
-                [playlistName, playlistDescription, normalizedUrl]
+                `INSERT INTO training_playlists (category_id, name, description, youtube_playlist_url, display_order, is_active)
+                 VALUES ($1, $2, $3, $4, 0, true)
+                 RETURNING id, category_id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at`,
+                [categoryId, playlistName, playlistDescription, normalizedUrl]
             );
 
             const createdPlaylist = playlistResult.rows[0];
@@ -642,7 +658,7 @@ const createPlaylist = async (req, res, next) => {
 const updatePlaylist = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, description } = req.body;
+        const { name, description, category_id } = req.body;
 
         const existing = await pool.query('SELECT id FROM training_playlists WHERE id = $1', [id]);
         if (existing.rows.length === 0) {
@@ -663,6 +679,26 @@ const updatePlaylist = async (req, res, next) => {
             values.push(description);
         }
 
+        if (category_id !== undefined) {
+            if (category_id === null || category_id === '') {
+                fields.push(`category_id = $${idx++}`);
+                values.push(null);
+            } else {
+                const categoryId = clamp(category_id, 1, 10000000, null);
+                if (!categoryId) {
+                    return res.status(400).json({ error: 'category_id must be a positive integer' });
+                }
+
+                const categoryCheck = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
+                if (categoryCheck.rows.length === 0) {
+                    return res.status(404).json({ error: 'Training category not found' });
+                }
+
+                fields.push(`category_id = $${idx++}`);
+                values.push(categoryId);
+            }
+        }
+
         if (fields.length === 0) {
             return res.status(400).json({ error: 'No valid fields provided for update' });
         }
@@ -674,7 +710,7 @@ const updatePlaylist = async (req, res, next) => {
             `UPDATE training_playlists
              SET ${fields.join(', ')}
              WHERE id = $${idx}
-             RETURNING id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at`,
+             RETURNING id, category_id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at`,
             values
         );
 
@@ -841,6 +877,437 @@ const updatePlaylistItemOrder = async (req, res, next) => {
     }
 };
 
+const mapCategoryRow = (row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    display_order: row.display_order,
+    is_active: row.is_active,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+});
+
+const mapNoteRow = (row) => ({
+    id: row.id,
+    category_id: row.category_id,
+    title: row.title,
+    document_url: row.document_url,
+    display_order: row.display_order,
+    is_active: row.is_active,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+});
+
+const getPublicTrainingCategories = async (req, res, next) => {
+    try {
+        const [categoriesResult, playlistsResult, notesResult] = await Promise.all([
+            pool.query(
+                `SELECT id, name, description, display_order, is_active, created_at, updated_at
+                 FROM training_categories
+                 WHERE is_active = true
+                 ORDER BY display_order ASC, id ASC`
+            ),
+            pool.query(
+                `SELECT tp.id, tp.category_id, tp.name, tp.description, tp.display_order, tp.is_active,
+                        tp.youtube_playlist_url, tp.created_at, tp.updated_at,
+                        COUNT(pi.id)::int AS video_count
+                 FROM training_playlists tp
+                 LEFT JOIN playlist_items pi ON pi.playlist_id = tp.id
+                 WHERE tp.is_active = true
+                 GROUP BY tp.id
+                 ORDER BY tp.display_order ASC, tp.id ASC`
+            ),
+            pool.query(
+                `SELECT id, category_id, title, document_url, display_order, is_active, created_at, updated_at
+                 FROM training_notes
+                 WHERE is_active = true
+                 ORDER BY display_order ASC, id ASC`
+            ),
+        ]);
+
+        const categories = categoriesResult.rows.map((row) => ({
+            ...mapCategoryRow(row),
+            playlists: [],
+            notes: [],
+        }));
+
+        const byId = new Map(categories.map((category) => [category.id, category]));
+        const uncategorized = {
+            id: null,
+            name: 'General',
+            description: 'Playlists not yet assigned to a category.',
+            display_order: 999999,
+            is_active: true,
+            playlists: [],
+            notes: [],
+        };
+
+        playlistsResult.rows.forEach((row) => {
+            const payload = {
+                ...mapPlaylistRow(row),
+                video_count: row.video_count,
+            };
+
+            const category = row.category_id ? byId.get(row.category_id) : uncategorized;
+            if (category) {
+                category.playlists.push(payload);
+            }
+        });
+
+        notesResult.rows.forEach((row) => {
+            const category = byId.get(row.category_id);
+            if (category) {
+                category.notes.push(mapNoteRow(row));
+            }
+        });
+
+        const responseCategories = [...categories];
+        if (uncategorized.playlists.length > 0) {
+            responseCategories.push(uncategorized);
+        }
+
+        res.json({
+            categories: responseCategories,
+            count: responseCategories.length,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getAdminTrainingCategories = async (req, res, next) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, name, description, display_order, is_active, created_at, updated_at
+             FROM training_categories
+             ORDER BY display_order ASC, id ASC`
+        );
+
+        res.json({
+            categories: result.rows.map(mapCategoryRow),
+            count: result.rows.length,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const createTrainingCategory = async (req, res, next) => {
+    try {
+        const { name, description = null, display_order = 0, is_active = true } = req.body;
+        if (!name || !String(name).trim()) {
+            return res.status(400).json({ error: 'Category name is required' });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO training_categories (name, description, display_order, is_active)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id, name, description, display_order, is_active, created_at, updated_at`,
+            [
+                String(name).trim().slice(0, 255),
+                typeof description === 'string' ? description.trim().slice(0, 2000) || null : null,
+                clamp(display_order, 0, 100000, 0),
+                Boolean(is_active),
+            ]
+        );
+
+        res.status(201).json({
+            message: 'Training category created successfully',
+            category: mapCategoryRow(result.rows[0]),
+        });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ error: 'A training category with this name already exists' });
+        }
+        next(err);
+    }
+};
+
+const updateTrainingCategory = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { name, description, display_order, is_active } = req.body;
+
+        const existing = await pool.query('SELECT id FROM training_categories WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Training category not found' });
+        }
+
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (typeof name === 'string' && name.trim()) {
+            fields.push(`name = $${idx++}`);
+            values.push(name.trim().slice(0, 255));
+        }
+
+        if (typeof description === 'string' || description === null) {
+            fields.push(`description = $${idx++}`);
+            values.push(description === null ? null : description.trim().slice(0, 2000));
+        }
+
+        if (display_order !== undefined) {
+            fields.push(`display_order = $${idx++}`);
+            values.push(clamp(display_order, 0, 100000, 0));
+        }
+
+        if (typeof is_active === 'boolean') {
+            fields.push(`is_active = $${idx++}`);
+            values.push(is_active);
+        }
+
+        if (fields.length === 0) {
+            return res.status(400).json({ error: 'No valid fields provided for update' });
+        }
+
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(id);
+
+        const result = await pool.query(
+            `UPDATE training_categories
+             SET ${fields.join(', ')}
+             WHERE id = $${idx}
+             RETURNING id, name, description, display_order, is_active, created_at, updated_at`,
+            values
+        );
+
+        res.json({
+            message: 'Training category updated successfully',
+            category: mapCategoryRow(result.rows[0]),
+        });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ error: 'A training category with this name already exists' });
+        }
+        next(err);
+    }
+};
+
+const deleteTrainingCategory = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const existing = await pool.query('SELECT id FROM training_categories WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Training category not found' });
+        }
+
+        await pool.query('DELETE FROM training_categories WHERE id = $1', [id]);
+
+        res.json({ message: 'Training category deleted successfully' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getCategoryNotes = async (req, res, next) => {
+    try {
+        const { categoryId } = req.params;
+        const onlyActive = !req.path.includes('/admin/');
+
+        const category = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
+        if (category.rows.length === 0) {
+            return res.status(404).json({ error: 'Training category not found' });
+        }
+
+        const query = onlyActive
+            ? `SELECT id, category_id, title, content, document_url, display_order, is_active, created_at, updated_at
+               FROM training_notes
+               WHERE category_id = $1 AND is_active = true
+               ORDER BY display_order ASC, id ASC`
+            : `SELECT id, category_id, title, content, document_url, display_order, is_active, created_at, updated_at
+               FROM training_notes
+               WHERE category_id = $1
+               ORDER BY display_order ASC, id ASC`;
+
+        const result = await pool.query(query, [categoryId]);
+
+        res.json({
+            notes: result.rows.map(mapNoteRow),
+            count: result.rows.length,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const createCategoryNote = async (req, res, next) => {
+    try {
+        const { categoryId } = req.params;
+        const {
+            title,
+            document_url = null,
+            display_order = 0,
+            is_active = true,
+        } = req.body;
+
+        console.log('CREATE NOTE - Received req.body:', req.body);
+        console.log('CREATE NOTE - Extracted title:', title);
+        console.log('CREATE NOTE - Title type:', typeof title);
+
+        const safeTitle = typeof title === 'string' ? title.trim() : '';
+        const safeContent = typeof content === 'string' ? content.trim() : null;
+        const safeDocumentUrl = typeof document_url === 'string' ? document_url.trim() : null;
+
+        console.log('CREATE NOTE - Safe values:', { safeTitle, safeContent, safeDocumentUrl });
+
+        if (!safeTitle) {
+            return res.status(400).json({ error: 'Note title is required' });
+        }
+
+        if (!safeContent && !safeDocumentUrl) {
+            return res.status(400).json({ error: 'Provide either note content or document URL' });
+        }
+
+        const category = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
+        if (category.rows.length === 0) {
+            return res.status(404).json({ error: 'Training category not found' });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO training_notes (category_id, title, content, document_url, display_order, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, category_id, title, content, document_url, display_order, is_active, created_at, updated_at`,
+            [
+                categoryId,
+                safeTitle.slice(0, 255),
+                safeContent ? safeContent.slice(0, 10000) : null,
+                safeDocumentUrl ? safeDocumentUrl.slice(0, 1000) : null,
+                clamp(display_order, 0, 100000, 0),
+                Boolean(is_active),
+            ]
+        );
+
+        console.log('CREATE NOTE - Inserted row:', result.rows[0]);
+
+        res.status(201).json({
+            message: 'Category note created successfully',
+            note: mapNoteRow(result.rows[0]),
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const updateCategoryNote = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { title, content, document_url, display_order, is_active } = req.body;
+
+        const existing = await pool.query('SELECT id FROM training_notes WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Training note not found' });
+        }
+
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (typeof title === 'string') {
+            const safeTitle = title.trim();
+            if (!safeTitle) {
+                return res.status(400).json({ error: 'Note title cannot be empty' });
+            }
+            fields.push(`title = $${idx++}`);
+            values.push(safeTitle.slice(0, 255));
+        }
+
+
+        if (typeof document_url === 'string' || document_url === null) {
+            fields.push(`document_url = $${idx++}`);
+            values.push(document_url === null ? null : document_url.trim().slice(0, 1000));
+        }
+
+        if (display_order !== undefined) {
+            fields.push(`display_order = $${idx++}`);
+            values.push(clamp(display_order, 0, 100000, 0));
+        }
+
+        if (typeof is_active === 'boolean') {
+            fields.push(`is_active = $${idx++}`);
+            values.push(is_active);
+        }
+
+        if (fields.length === 0) {
+            return res.status(400).json({ error: 'No valid fields provided for update' });
+        }
+
+        const previewValues = { ...req.body };
+        if (fields.some((field) => field.startsWith('content')) || fields.some((field) => field.startsWith('document_url'))) {
+            const safeContent = Object.prototype.hasOwnProperty.call(previewValues, 'content')
+                ? (typeof previewValues.content === 'string' ? previewValues.content.trim() : previewValues.content)
+                : undefined;
+            const safeDocumentUrl = Object.prototype.hasOwnProperty.call(previewValues, 'document_url')
+                ? (typeof previewValues.document_url === 'string' ? previewValues.document_url.trim() : previewValues.document_url)
+                : undefined;
+
+            if ((safeContent === '' || safeContent === null || safeContent === undefined)
+                && (safeDocumentUrl === '' || safeDocumentUrl === null || safeDocumentUrl === undefined)) {
+                return res.status(400).json({ error: 'Provide either note content or document URL' });
+            }
+        }
+
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(id);
+
+        const result = await pool.query(
+            `UPDATE training_notes
+             SET ${fields.join(', ')}
+             WHERE id = $${idx}
+             RETURNING id, category_id, title, content, document_url, display_order, is_active, created_at, updated_at`,
+            values
+        );
+
+        res.json({
+            message: 'Category note updated successfully',
+            note: mapNoteRow(result.rows[0]),
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const deleteCategoryNote = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const result = await pool.query('DELETE FROM training_notes WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Training note not found' });
+        }
+
+        res.json({ message: 'Category note deleted successfully' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const uploadTrainingNoteDocument = async (req, res, next) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const fileName = path.basename(file.path);
+        const document = {
+            name: file.originalname,
+            path: `/uploads/training-notes/${fileName}`,
+            url: `${req.protocol}://${req.get('host')}/uploads/training-notes/${fileName}`,
+            size: file.size,
+            mimeType: file.mimetype,
+        };
+
+        res.status(201).json({
+            message: 'Training note document uploaded successfully',
+            document,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getPublicTrainingVideos,
     getAdminTrainingVideos,
@@ -856,4 +1323,14 @@ module.exports = {
     addVideoToPlaylist,
     removeVideoFromPlaylist,
     updatePlaylistItemOrder,
+    getPublicTrainingCategories,
+    getAdminTrainingCategories,
+    createTrainingCategory,
+    updateTrainingCategory,
+    deleteTrainingCategory,
+    getCategoryNotes,
+    createCategoryNote,
+    updateCategoryNote,
+    deleteCategoryNote,
+    uploadTrainingNoteDocument,
 };

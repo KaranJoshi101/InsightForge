@@ -496,6 +496,137 @@ Authorization: Bearer <admin_token>
 
 ---
 
+## 5. Consulting Endpoints
+
+### Get Active Consulting Services
+**GET** `/consulting`
+
+**Response:**
+```json
+{
+  "services": [
+    {
+      "id": 1,
+      "title": "Protocol Development",
+      "slug": "protocol-development",
+      "short_description": "Design robust clinical and research protocols...",
+      "content": "<p>...</p>",
+      "deliverables": "<ul><li>...</li></ul>",
+      "target_audience": "<ul><li>...</li></ul>",
+      "is_active": true
+    }
+  ],
+  "count": 7
+}
+```
+
+---
+
+### Get Consulting Service By Slug
+**GET** `/consulting/:slug`
+
+**Response:**
+```json
+{
+  "service": {
+    "id": 1,
+    "title": "Protocol Development",
+    "slug": "protocol-development",
+    "short_description": "Design robust clinical and research protocols...",
+    "content": "<p>Detailed service content...</p>",
+    "deliverables": "<ul><li>...</li></ul>",
+    "target_audience": "<ul><li>...</li></ul>",
+    "is_active": true
+  }
+}
+```
+
+---
+
+### Submit Consultation Request
+**POST** `/consulting/request`
+
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `service_id` (required)
+- `name` (required)
+- `email` (required)
+- `message` (required)
+- `file` (optional; pdf/doc/docx/xls/xlsx/csv/txt)
+
+**Response:**
+```json
+{
+  "message": "Consultation request submitted successfully",
+  "request": {
+    "id": 21,
+    "service_id": 3,
+    "user_id": 2,
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "message": "Need support for sample size planning.",
+    "file_url": "/uploads/consulting-requests/1711111111111-a1b2c3-brief.pdf",
+    "created_at": "2026-03-29T10:00:00Z"
+  }
+}
+```
+
+---
+
+### Create Consulting Service (Admin Only)
+**POST** `/consulting`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+**Request Body:**
+```json
+{
+  "title": "Protocol Development",
+  "slug": "protocol-development",
+  "short_description": "Design robust protocols.",
+  "content": "<p>Rich HTML content</p>",
+  "deliverables": "<ul><li>Deliverable 1</li></ul>",
+  "target_audience": "<ul><li>Audience 1</li></ul>",
+  "is_active": true
+}
+```
+
+---
+
+### Update Consulting Service (Admin Only)
+**PUT** `/consulting/:id`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+---
+
+### Delete Consulting Service (Admin Only)
+**DELETE** `/consulting/:id`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+---
+
+### List Consultation Requests (Admin Only)
+**GET** `/consulting/requests?page=1&limit=20`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+---
+
 ## Error Responses
 
 ### 400 Bad Request

@@ -105,7 +105,7 @@ const AdminUsersPage = () => {
     return (
         <div className="container mt-4">
             <BackLink to="/admin" label="Back to Admin" />
-            <h1 style={{ color: '#003594', marginBottom: '24px' }}>Users Management</h1>
+            <h1 className="admin-title">Users Management</h1>
 
             {error && <div className="alert alert-danger">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
@@ -119,7 +119,7 @@ const AdminUsersPage = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    <p style={{ margin: '8px 0 0 0', color: '#888', fontSize: '0.85rem' }}>
+                    <p className="admin-search-meta">
                         Showing {users.length} of {pagination.total} users
                     </p>
                 </div>
@@ -127,11 +127,11 @@ const AdminUsersPage = () => {
 
             {/* Users Table */}
             {users.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                    <p style={{ color: '#666' }}>No users found</p>
+                <div className="card admin-empty-card">
+                    <p className="admin-empty-text">No users found</p>
                 </div>
             ) : (
-                <table className="card">
+                <table className="card admin-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -146,45 +146,29 @@ const AdminUsersPage = () => {
                     <tbody>
                         {users.map((user) => (
                             <tr key={user.id}>
-                                <td style={{ padding: '12px' }}>{user.id}</td>
-                                <td style={{ padding: '12px' }}>
+                                <td className="admin-cell">{user.id}</td>
+                                <td className="admin-cell">
                                     <strong>{user.name}</strong>
                                 </td>
-                                <td style={{ padding: '12px' }}>{user.email}</td>
-                                <td style={{ padding: '12px' }}>
-                                    <span
-                                        style={{
-                                            backgroundColor: user.role === 'admin' ? '#e8f0fe' : '#E8E9EE',
-                                            color: user.role === 'admin' ? '#003594' : '#555',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.85rem',
-                                        }}
-                                    >
+                                <td className="admin-cell">{user.email}</td>
+                                <td className="admin-cell">
+                                    <span className={`badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}`}>
                                         {user.role}
                                     </span>
                                 </td>
-                                <td style={{ padding: '12px' }}>
-                                    <span
-                                        style={{
-                                            backgroundColor: user.is_banned ? '#fde8e8' : '#e8f8f0',
-                                            color: user.is_banned ? '#922b21' : '#1a6e42',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.85rem',
-                                        }}
-                                    >
+                                <td className="admin-cell">
+                                    <span className={`badge ${user.is_banned ? 'badge-banned' : 'badge-active'}`}>
                                         {user.is_banned ? 'Banned' : 'Active'}
                                     </span>
                                 </td>
-                                <td style={{ padding: '12px', fontSize: '0.9rem' }}>
+                                <td className="admin-cell-muted">
                                     {new Date(user.created_at).toLocaleDateString()}
                                 </td>
-                                <td style={{ padding: '12px' }}>
+                                <td className="admin-cell">
+                                    <div className="admin-actions-wrap">
                                     <button
                                         onClick={() => setSelectedUser(user)}
-                                        className="btn btn-primary"
-                                        style={{ padding: '4px 8px', fontSize: '0.85rem', marginRight: '4px' }}
+                                        className="btn btn-primary btn-compact"
                                     >
                                         View
                                     </button>
@@ -192,18 +176,16 @@ const AdminUsersPage = () => {
                                         user.is_banned ? (
                                             <button
                                                 onClick={() => handleUnban(user.id)}
-                                                className="btn btn-success"
+                                                className="btn btn-success btn-compact"
                                                 disabled={banning === user.id}
-                                                style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                                             >
                                                 {banning === user.id ? 'Unbanning...' : 'Unban'}
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => handleBan(user.id)}
-                                                className="btn btn-danger"
+                                                className="btn btn-danger btn-compact"
                                                 disabled={banning === user.id}
-                                                style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                                             >
                                                 {banning === user.id ? 'Banning...' : 'Ban'}
                                             </button>
@@ -212,13 +194,13 @@ const AdminUsersPage = () => {
                                     {user.role !== 'admin' && user.is_banned && (
                                         <button
                                             onClick={() => handleDelete(user.id)}
-                                            className="btn btn-danger"
+                                            className="btn btn-danger btn-compact btn-critical"
                                             disabled={deleting === user.id || banning === user.id}
-                                            style={{ padding: '4px 8px', fontSize: '0.85rem', marginLeft: '4px', backgroundColor: '#922b21' }}
                                         >
                                             {deleting === user.id ? 'Deleting...' : 'Delete'}
                                         </button>
                                     )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -228,21 +210,19 @@ const AdminUsersPage = () => {
 
             {/* Pagination */}
             {pagination.pages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+                <div className="admin-pagination">
                     <button
-                        className="btn"
-                        style={{ color: '#003594' }}
+                        className="btn btn-nav"
                         disabled={pagination.page <= 1}
                         onClick={() => fetchUsers(pagination.page - 1, searchQuery)}
                     >
                         Previous
                     </button>
-                    <span style={{ padding: '8px 12px' }}>
+                    <span className="admin-pagination-status">
                         Page {pagination.page} of {pagination.pages}
                     </span>
                     <button
-                        className="btn"
-                        style={{ color: '#003594' }}
+                        className="btn btn-nav"
                         disabled={pagination.page >= pagination.pages}
                         onClick={() => fetchUsers(pagination.page + 1, searchQuery)}
                     >

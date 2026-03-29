@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import trainingService from '../services/trainingService';
+import analyticsService from '../services/analyticsService';
 import BackLink from '../components/BackLink';
 import { useAuth } from '../context/AuthContext';
 import './TrainingPage.css';
@@ -17,6 +18,8 @@ const TrainingPage = () => {
     const [selectedSection, setSelectedSection] = useState(null); // notes | videos
     const [selectedPlaylist, setSelectedPlaylist] = useState(null);
     const [selectedVideo, setSelectedVideo] = useState(null);
+    const trackedCategoryIdsRef = useRef(new Set());
+    const trackedPlaylistIdsRef = useRef(new Set());
 
     const fetchCategories = useCallback(async () => {
         try {
@@ -110,6 +113,46 @@ const TrainingPage = () => {
     useEffect(() => {
         fetchCategories();
     }, [fetchCategories]);
+
+    useEffect(() => {
+        if (!selectedCategory?.id) return;
+        if (trackedCategoryIdsRef.current.has(selectedCategory.id)) return;
+
+        trackedCategoryIdsRef.current.add(selectedCategory.id);
+
+        analyticsService.trackEvent({
+            event_type: 'training_view',
+            entity_type: 'training',
+            entity_id: selectedCategory.id,
+            metadata: {
+                source: 'training-category-open',
+                category_name: selectedCategory.name,
+            },
+        }).catch(() => {
+            // Ignore analytics failures.
+        });
+    }, [selectedCategory?.id, selectedCategory?.name]);
+
+    useEffect(() => {
+        if (!selectedPlaylist?.id || !selectedCategory?.id) return;
+        if (trackedPlaylistIdsRef.current.has(selectedPlaylist.id)) return;
+
+        trackedPlaylistIdsRef.current.add(selectedPlaylist.id);
+
+        analyticsService.trackEvent({
+            event_type: 'training_view',
+            entity_type: 'training',
+            entity_id: selectedCategory.id,
+            metadata: {
+                source: 'training-playlist-open',
+                category_name: selectedCategory.name,
+                playlist_id: selectedPlaylist.id,
+                playlist_name: selectedPlaylist.name,
+            },
+        }).catch(() => {
+            // Ignore analytics failures.
+        });
+    }, [selectedPlaylist?.id, selectedPlaylist?.name, selectedCategory?.id, selectedCategory?.name]);
 
     const backTo = isAuthenticated ? '/dashboard' : '/';
 

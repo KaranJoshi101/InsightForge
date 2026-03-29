@@ -2,9 +2,10 @@ import api from './api';
 
 const surveyService = {
     // Get all surveys
-    getAllSurveys: (page = 1, limit = 10, status = null) => {
+    getAllSurveys: (page = 1, limit = 10, status = null, excludeFeedback = false) => {
         let url = `/surveys?page=${page}&limit=${limit}`;
         if (status) url += `&status=${status}`;
+        if (excludeFeedback) url += '&exclude_feedback=true';
         return api.get(url);
     },
 

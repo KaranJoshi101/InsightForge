@@ -8,6 +8,7 @@ Survey platform built with PostgreSQL, Express, React, and Node.js.
 - Survey creation, publishing, and response collection
 - Analytics endpoints (including demographics and export)
 - Article publishing and management
+- Consulting services pages with consultation request capture
 - Admin dashboard for users, surveys, and content
 
 ## Tech Stack
@@ -47,6 +48,10 @@ Details and examples: `docs/IMAGE_STORAGE.md`
 For a single consolidated source containing architecture, use cases, DFD inputs, sequence flows, API inventory, database schema, and UML component mapping, use:
 
 `docs/MASTER_PROJECT_DIAGRAM_SPEC.md`
+
+For a complete operational and implementation-oriented master document (setup, scripts, architecture, modules, deployment, and documentation map), use:
+
+`docs/PROJECT_DOCUMENTATION.md`
 
 ## Deployment
 

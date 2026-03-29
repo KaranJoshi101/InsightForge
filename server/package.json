@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "db:init": "node init.js"
+    "db:init": "node init.js",
+    "seed:consulting": "node scripts/seed_consulting_requests_and_events.js"
   },
   "keywords": [
     "survey",

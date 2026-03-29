@@ -12,6 +12,8 @@ const articleRoutes = require('./routes/articles');
 const userRoutes = require('./routes/users');
 const mediaRoutes = require('./routes/media');
 const trainingRoutes = require('./routes/training');
+const consultingRoutes = require('./routes/consulting');
+const analyticsRoutes = require('./routes/analytics');
 
 // Middleware imports
 const { errorHandler } = require('./middleware/errorHandler');
@@ -80,6 +82,8 @@ app.use('/api/articles', articleRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/training', trainingRoutes);
+app.use('/api/consulting', consultingRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -100,6 +104,9 @@ app.get('/api/health/db', async (req, res) => {
       'answers',
       'articles',
       'signup_otp_verifications',
+      'consulting_services',
+      'consulting_requests',
+      'platform_events',
     ];
 
     const checks = await Promise.all(
@@ -150,6 +157,8 @@ app.get('/', (req, res) => {
             articles: '/api/articles',
             media: '/api/media',
             training: '/api/training',
+            consulting: '/api/consulting',
+            analytics: '/api/analytics',
         },
     });
 });
@@ -238,6 +247,11 @@ Articles:
   POST /api/articles     - Create article (admin)
   PUT  /api/articles/:id  - Update article (admin)
   DELETE /api/articles/:id - Delete article (admin)
+
+Consulting:
+  GET  /api/consulting       - Get active consulting services
+  GET  /api/consulting/:slug - Get service details by slug
+  POST /api/consulting/request - Submit consultation request
 
     `);
   });

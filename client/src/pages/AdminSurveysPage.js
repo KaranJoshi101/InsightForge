@@ -122,8 +122,8 @@ const AdminSurveysPage = () => {
             <BackLink to="/admin" label="Back to Admin" />
             <div className="admin-page-header">
                 <div>
-                    <h1 style={{ color: '#003594', marginBottom: '6px' }}>Manage Surveys</h1>
-                    <p style={{ margin: 0, color: '#666' }}>Centralized control for survey lifecycle and reporting.</p>
+                    <h1 style={{ marginBottom: '6px' }}>Manage Surveys</h1>
+                    <p style={{ margin: 0 }}>Centralized control for survey lifecycle and reporting.</p>
                 </div>
                 <div className="admin-page-actions">
                     <Link to="/admin/surveys/create" className="btn btn-success">
@@ -153,20 +153,13 @@ const AdminSurveysPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search surveys by name"
                     aria-label="Search surveys by name"
-                    style={{
-                        width: '100%',
-                        maxWidth: '420px',
-                        padding: '10px 12px',
-                        border: '1px solid #ced4da',
-                        borderRadius: '6px',
-                        fontSize: '0.95rem',
-                    }}
+                    className="market-search-input"
                 />
             </div>
 
             {filteredSurveys.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                    <p style={{ color: '#666' }}>
+                <div className="card admin-empty-card">
+                    <p className="admin-empty-text">
                         {surveys.length === 0 ? 'No surveys created yet' : 'No surveys match your search'}
                     </p>
                 </div>
@@ -185,75 +178,62 @@ const AdminSurveysPage = () => {
                         <tbody>
                             {filteredSurveys.map((survey) => (
                                 <tr key={survey.id}>
-                                    <td style={{ padding: '12px' }}>
+                                    <td className="admin-cell">
                                         <strong>{survey.title}</strong>
                                     </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span
-                                            style={{
-                                                backgroundColor: survey.status === 'published' ? '#e8f8f0' : '#fff8e1',
-                                                color: survey.status === 'published' ? '#1a6e42' : '#8a6d00',
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.85rem',
-                                                textTransform: 'capitalize',
-                                            }}
-                                        >
+                                    <td className="admin-cell">
+                                        <span className={`badge ${survey.status === 'published' ? 'badge-published' : 'badge-draft'}`}>
                                             {survey.status}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '12px', textAlign: 'center' }}>N/A</td>
-                                    <td style={{ padding: '12px', fontSize: '0.9rem' }}>
+                                    <td className="admin-cell" style={{ textAlign: 'center' }}>
+                                        {Number.isInteger(Number(survey.question_count)) ? Number(survey.question_count) : 0}
+                                    </td>
+                                    <td className="admin-cell-muted">
                                         {new Date(survey.created_at).toLocaleDateString()}
                                     </td>
-                                    <td style={{ padding: '12px' }}>
+                                    <td className="admin-cell">
                                         <div className="admin-actions-wrap">
                                             <Link
                                                 to={`/admin/surveys/${survey.id}/edit`}
-                                                className="btn btn-primary"
-                                                style={{ padding: '4px 8px', fontSize: '0.85rem' }}
+                                                className="btn btn-primary btn-compact"
                                             >
                                                 Edit
                                             </Link>
                                             <Link
                                                 to={`/admin/surveys/${survey.id}/analytics`}
-                                                className="btn btn-primary"
-                                                style={{ padding: '4px 8px', fontSize: '0.85rem', backgroundColor: '#2980b9', borderColor: '#2980b9' }}
+                                                className="btn btn-info btn-compact"
                                             >
                                                 Analytics
                                             </Link>
                                             <button
                                                 onClick={() => handleExportExcel(survey)}
-                                                className="btn btn-secondary"
+                                                className="btn btn-secondary btn-compact"
                                                 disabled={exporting === survey.id}
-                                                style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                                             >
                                                 {exporting === survey.id ? 'Exporting...' : 'Export'}
                                             </button>
                                             {survey.status === 'draft' ? (
                                                 <button
                                                     onClick={() => handlePublish(survey.id)}
-                                                    className="btn btn-success"
+                                                    className="btn btn-success btn-compact"
                                                     disabled={publishing === survey.id}
-                                                    style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                                                 >
                                                     {publishing === survey.id ? 'Publishing...' : 'Publish'}
                                                 </button>
                                             ) : (
                                                 <button
                                                     onClick={() => handleUnpublish(survey.id)}
-                                                    className="btn btn-warning"
+                                                    className="btn btn-warning btn-compact"
                                                     disabled={publishing === survey.id}
-                                                    style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                                                 >
                                                     {publishing === survey.id ? 'Unpublishing...' : 'Unpublish'}
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => handleDelete(survey.id)}
-                                                className="btn btn-danger"
+                                                className="btn btn-danger btn-compact"
                                                 disabled={deleting === survey.id}
-                                                style={{ padding: '4px 8px', fontSize: '0.85rem' }}
                                             >
                                                 {deleting === survey.id ? 'Deleting...' : 'Delete'}
                                             </button>

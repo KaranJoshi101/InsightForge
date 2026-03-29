@@ -11,7 +11,7 @@ const SurveyDetailPage = () => {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const backTo = location.state?.fromMedia || '/media';
+    const fromMediaPath = location.state?.fromMedia;
     const [survey, setSurvey] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -73,10 +73,14 @@ const SurveyDetailPage = () => {
         return <LoadingSpinner fullScreen={false} />;
     }
 
+    const isFeedbackSurvey = Boolean(survey?.is_feedback);
+    const backTo = survey ? (isFeedbackSurvey ? '/media' : '/surveys') : (fromMediaPath || '/surveys');
+    const backLabel = survey ? (isFeedbackSurvey ? 'Back to Media' : 'Back to Surveys') : (fromMediaPath ? 'Back to Media' : 'Back to Surveys');
+
     if (error || !survey) {
         return (
             <div className="container mt-4">
-                <BackLink to={backTo} label="Go Back" />
+                <BackLink to={backTo} label={backLabel} />
                 <div className="alert alert-danger">{error || 'Survey not found'}</div>
             </div>
         );
@@ -84,7 +88,7 @@ const SurveyDetailPage = () => {
 
     return (
         <div className="container mt-4">
-            <BackLink to={backTo} label="Back to Media" />
+            <BackLink to={backTo} label={backLabel} />
 
             <div className="card mt-3">
                 <div className="card-body">

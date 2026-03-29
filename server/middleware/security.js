@@ -54,6 +54,16 @@ const authRateLimit = isDev
         message: { error: 'Too many authentication attempts. Please try again later.' },
       });
 
+const analyticsEventRateLimit = isDev
+        ? _noLimit
+        : rateLimit({
+                windowMs: 15 * 60 * 1000,
+                limit: Number(process.env.ANALYTICS_EVENT_RATE_LIMIT_MAX || 180),
+                standardHeaders: true,
+                legacyHeaders: false,
+                message: { error: 'Too many analytics events. Please slow down.' },
+            });
+
 // In development: skip Helmet (avoids header conflicts with React dev server / HMR).
 const securityHeaders = isDev
     ? (_req, _res, next) => next()
@@ -66,5 +76,6 @@ module.exports = {
     corsOptions,
     globalRateLimit,
     authRateLimit,
+    analyticsEventRateLimit,
     securityHeaders,
 };

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
+import analyticsService from '../services/analyticsService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BackLink from '../components/BackLink';
 
@@ -11,8 +12,6 @@ const DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 const TakeSurveyPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const location = useLocation();
-    const backTo = location.state?.fromMedia || '/media';
     const [survey, setSurvey] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -22,6 +21,9 @@ const TakeSurveyPage = () => {
     const [alreadySubmitted, setAlreadySubmitted] = useState(false);
     const [draftRestored, setDraftRestored] = useState(false);
     const [lastSavedAt, setLastSavedAt] = useState(null);
+
+    const backTo = survey?.is_feedback ? '/media' : '/surveys';
+    const backLabel = survey?.is_feedback ? 'Back to Media' : 'Back to Surveys';
 
     const getDraftKey = useCallback(() => {
         let userId = 'anonymous';
@@ -282,6 +284,19 @@ const TakeSurveyPage = () => {
             });
 
             await responseService.submitResponse(parseInt(id), answersArray);
+
+            analyticsService.trackEvent({
+                event_type: 'survey_submit',
+                entity_type: 'survey',
+                entity_id: Number(id),
+                metadata: {
+                    source: 'take-survey-page',
+                    question_count: survey.questions?.length || 0,
+                },
+            }).catch(() => {
+                // Ignore analytics failure; submission already succeeded.
+            });
+
             setAlreadySubmitted(true);
             setSuccess('Survey submitted successfully!');
             clearDraft();
@@ -321,7 +336,7 @@ const TakeSurveyPage = () => {
     if (error && !survey) {
         return (
             <div className="container mt-4">
-                <BackLink to={backTo} label="Back to Media" />
+                <BackLink to={backTo} label={backLabel} />
                 <div className="alert alert-danger">{error}</div>
             </div>
         );
@@ -330,7 +345,7 @@ const TakeSurveyPage = () => {
     return (
         <div className="container mt-4">
             <div className="survey-form-shell">
-            <BackLink to={backTo} label="Back to Media" />
+            <BackLink to={backTo} label={backLabel} />
 
             <div className="card survey-form-card">
                 <div className="card-body">

@@ -16,6 +16,8 @@ import ResponseDetailPage from './pages/ResponseDetailPage';
 import ArticlesPage from './pages/ArticlesPage';
 import ArticleDetailPage from './pages/ArticleDetailPage';
 import TrainingPage from './pages/TrainingPage';
+import ConsultingPage from './pages/ConsultingPage';
+import ConsultingDetailPage from './pages/ConsultingDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import MediaPage from './pages/MediaPage';
 import MediaDetailPage from './pages/MediaDetailPage';
@@ -26,14 +28,48 @@ import AdminUsersPage from './pages/AdminUsersPage';
 import AdminSurveysPage from './pages/AdminSurveysPage';
 import AdminTrainingPage from './pages/AdminTrainingPage';
 import AdminMediaPage from './pages/AdminMediaPage';
+import AdminConsultingPage from './pages/AdminConsultingPage';
+import AdminConsultingAnalyticsPage from './pages/AdminConsultingAnalyticsPage';
+// import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
 import CreateSurveyPage from './pages/CreateSurveyPage';
 import SurveyAnalyticsPage from './pages/SurveyAnalyticsPage';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
+// import analyticsService from './services/analyticsService';
 
 const AppContent = () => {
     const { loading } = useAuth();
+
+    // Unified analytics temporarily disabled.
+    // useEffect(() => {
+    //     const pathname = location.pathname || '/';
+    //     let entityType = 'platform';
+    //
+    //     if (pathname.startsWith('/survey') || pathname.startsWith('/surveys')) {
+    //         entityType = 'survey';
+    //     } else if (pathname.startsWith('/articles')) {
+    //         entityType = 'article';
+    //     } else if (pathname.startsWith('/media')) {
+    //         entityType = 'media';
+    //     } else if (pathname.startsWith('/training')) {
+    //         entityType = 'training';
+    //     } else if (pathname.startsWith('/consulting')) {
+    //         entityType = 'consulting';
+    //     }
+    //
+    //     analyticsService.trackEvent({
+    //         event_type: 'page_view',
+    //         entity_type: entityType,
+    //         entity_id: null,
+    //         metadata: {
+    //             path: pathname,
+    //             query: location.search || '',
+    //         },
+    //     }).catch(() => {
+    //         // Never block route transitions for analytics.
+    //     });
+    // }, [location.pathname, location.search]);
 
     if (loading) {
         return <LoadingSpinner />;
@@ -51,6 +87,8 @@ const AppContent = () => {
                     <Route path="/articles" element={<ArticlesPage />} />
                     <Route path="/articles/:id" element={<ArticleDetailPage />} />
                     <Route path="/training" element={<TrainingPage />} />
+                    <Route path="/consulting" element={<ConsultingPage />} />
+                    <Route path="/consulting/:slug" element={<ConsultingDetailPage />} />
                     <Route path="/surveys" element={<SurveysPage />} />
                     <Route path="/surveys/:id" element={<SurveyDetailPage />} />
 
@@ -179,6 +217,32 @@ const AppContent = () => {
                             </ProtectedRoute>
                         }
                     />
+                    <Route
+                        path="/admin/consulting"
+                        element={
+                            <ProtectedRoute adminOnly>
+                                <AdminConsultingPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/consulting/analytics"
+                        element={
+                            <ProtectedRoute adminOnly>
+                                <AdminConsultingAnalyticsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* Unified analytics temporarily disabled.
+                    <Route
+                        path="/admin/analytics"
+                        element={
+                            <ProtectedRoute adminOnly>
+                                <AdminAnalyticsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    */}
 
                     {/* Catch all - redirect to home */}
                     <Route path="*" element={<Navigate to="/" replace />} />

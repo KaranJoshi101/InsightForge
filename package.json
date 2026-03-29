@@ -15,6 +15,8 @@
     "pm2:restart": "pm2 restart survey-app-api --update-env",
     "pm2:stop": "pm2 stop survey-app-api",
     "db:init": "cd server && npm run db:init",
+    "seed:consulting": "node server/scripts/seed_consulting_requests_and_events.js",
+    "verify:consulting-seed": "node server/scripts/verify_consulting_seed.js",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "postinstall": "cd server && npm install && cd ../client && npm install"
   },

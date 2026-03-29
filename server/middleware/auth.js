@@ -59,6 +59,22 @@ const authenticate = (req, res, next) => {
     }
 };
 
+const optionalAuthenticate = (req, _res, next) => {
+    try {
+        const token = extractToken(req.headers.authorization);
+
+        if (!token) {
+            return next();
+        }
+
+        const decoded = verifyToken(token);
+        req.user = decoded;
+        return next();
+    } catch (_err) {
+        return next();
+    }
+};
+
 // Authorization Middleware (check if user is admin)
 const authorize = async (req, res, next) => {
     const tokenRole = normalizeRole(req.user?.role);
@@ -91,5 +107,6 @@ const authorize = async (req, res, next) => {
 
 module.exports = {
     authenticate,
+    optionalAuthenticate,
     authorize,
 };

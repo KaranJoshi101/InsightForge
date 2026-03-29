@@ -4,14 +4,23 @@ import { useAuth } from '../context/AuthContext';
 import { FaClipboardList, FaUserCircle, FaUser, FaSignOutAlt } from 'react-icons/fa';
 
 const NO_NAV_ROUTES = ['/', '/login', '/register'];
-const PUBLIC_ONLY_NAV_ROUTES = ['/', '/surveys', '/articles', '/training', '/media'];
+const PUBLIC_ONLY_NAV_ROUTES = ['/', '/surveys', '/articles', '/training', '/media', '/consulting'];
+const NO_NAV_PREFIXES = ['/surveys/', '/articles/', '/survey/'];
+
+const isNoNavRoute = (pathname) => {
+    if (NO_NAV_ROUTES.includes(pathname)) {
+        return true;
+    }
+
+    return NO_NAV_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+};
 
 const isPublicOnlyNavRoute = (pathname) => {
     if (PUBLIC_ONLY_NAV_ROUTES.includes(pathname)) {
         return true;
     }
 
-    return pathname.startsWith('/media/');
+    return pathname.startsWith('/media/') || pathname.startsWith('/consulting/');
 };
 
 const Navbar = () => {
@@ -35,7 +44,7 @@ const Navbar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showMenu]);
 
-    if (NO_NAV_ROUTES.includes(location.pathname)) return null;
+    if (isNoNavRoute(location.pathname)) return null;
     if (!isAuthenticated && isPublicOnlyNavRoute(location.pathname)) return null;
 
     const handleLogout = () => {
@@ -77,6 +86,7 @@ const Navbar = () => {
                 <div className="flex align-center gap-3">
                     <Link to="/surveys" style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}>Surveys</Link>
                     <Link to="/articles" style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}>Articles</Link>
+                    <Link to="/consulting" style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}>Consulting</Link>
                 </div>
                 <div className="flex align-center gap-3">
                     <Link
@@ -161,6 +171,12 @@ const Navbar = () => {
                     style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}
                 >
                     Training
+                </Link>
+                <Link
+                    to="/consulting"
+                    style={{ color: 'white', textDecoration: 'none', fontSize: '0.95rem' }}
+                >
+                    Consulting
                 </Link>
                 <Link
                     to="/media"

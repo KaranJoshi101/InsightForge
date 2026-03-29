@@ -59,7 +59,14 @@ const initDatabase = async () => {
             '10_add_youtube_playlist_url.sql',
             '11_add_survey_submission_email_fields.sql',
             '12_add_signup_otp_verifications.sql',
-            '13_add_training_categories_and_notes.sql'
+            '13_add_training_categories_and_notes.sql',
+            '14_drop_unused_fields.sql',
+            '15_add_consulting_services.sql',
+            '16_add_consulting_hero_fields.sql',
+            '17_add_consulting_events.sql',
+            '18_add_consulting_request_workflow_fields.sql',
+            '19_create_platform_events.sql',
+            '20_remove_consulting_request_assignment.sql'
         ];
 
         for (const migration of migrations) {

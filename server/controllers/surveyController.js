@@ -14,10 +14,12 @@ const ALLOWED_QUESTION_TYPES = new Set([
 // Get all surveys (with pagination)
 const getAllSurveys = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10, status } = req.query;
+        const { page = 1, limit = 10, status, exclude_feedback } = req.query;
         const offset = (page - 1) * limit;
 
-        let query = `SELECT s.*, EXISTS (
+        let query = `SELECT s.*, 
+                (SELECT COUNT(*)::int FROM questions q WHERE q.survey_id = s.id) AS question_count,
+                EXISTS (
                         SELECT 1
                         FROM media_posts mp
                         WHERE mp.survey_id = s.id
@@ -25,11 +27,22 @@ const getAllSurveys = async (req, res, next) => {
                      FROM surveys s`;
         let countQuery = 'SELECT COUNT(*) FROM surveys s';
         const params = [];
+        const whereClauses = [];
 
         if (status) {
-            query += ' WHERE s.status = $1';
-            countQuery += ' WHERE s.status = $1';
             params.push(status);
+            whereClauses.push(`s.status = $${params.length}`);
+        }
+
+        const shouldExcludeFeedback = String(exclude_feedback || '').toLowerCase() === 'true';
+        if (shouldExcludeFeedback) {
+            whereClauses.push(`NOT EXISTS (SELECT 1 FROM media_posts mp WHERE mp.survey_id = s.id)`);
+        }
+
+        if (whereClauses.length > 0) {
+            const whereSql = ` WHERE ${whereClauses.join(' AND ')}`;
+            query += whereSql;
+            countQuery += whereSql;
         }
 
         query += ' ORDER BY s.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
@@ -58,7 +71,13 @@ const getSurveyById = async (req, res, next) => {
         const { id } = req.params;
 
         const surveyResult = await pool.query(
-            'SELECT * FROM surveys WHERE id = $1',
+            `SELECT s.*, EXISTS (
+                SELECT 1
+                FROM media_posts mp
+                WHERE mp.survey_id = s.id
+             ) AS is_feedback
+             FROM surveys s
+             WHERE s.id = $1`,
             [id]
         );
 

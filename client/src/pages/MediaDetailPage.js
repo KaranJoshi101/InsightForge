@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
+import analyticsService from '../services/analyticsService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BackLink from '../components/BackLink';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +16,7 @@ const MediaDetailPage = () => {
     const [submittedAt, setSubmittedAt] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const trackedMediaIdRef = useRef(null);
 
     const formatSubmittedAt = (value) => {
         if (!value) {
@@ -99,6 +101,25 @@ const MediaDetailPage = () => {
     useEffect(() => {
         fetchMediaAndLinkedContent();
     }, [fetchMediaAndLinkedContent]);
+
+    useEffect(() => {
+        if (!media?.id) return;
+        if (trackedMediaIdRef.current === media.id) return;
+
+        trackedMediaIdRef.current = media.id;
+
+        analyticsService.trackEvent({
+            event_type: 'media_view',
+            entity_type: 'media',
+            entity_id: media.id,
+            metadata: {
+                path: `/media/${media.id}`,
+                source: media.source || null,
+            },
+        }).catch(() => {
+            // Ignore analytics failures.
+        });
+    }, [media?.id, media?.source]);
 
     if (loading) {
         return <LoadingSpinner fullScreen={false} />;

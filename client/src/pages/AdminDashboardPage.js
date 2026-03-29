@@ -10,7 +10,6 @@ import {
 } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import userService from '../services/userService';
-import trainingService from '../services/trainingService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 ChartJS.register(
@@ -187,40 +186,6 @@ const AdminDashboardPage = () => {
         }, { total: 0, public: 0, draft: 0 })
         : { total: 0, public: 0, draft: 0 };
 
-    // Training category admin list and toggle
-    const [categories, setCategories] = useState([]);
-    const [catLoading, setCatLoading] = useState(false);
-    const [catError, setCatError] = useState(null);
-    const [catUpdating, setCatUpdating] = useState({});
-
-    useEffect(() => {
-        const fetchCategories = async () => {
-            setCatLoading(true);
-            setCatError(null);
-            try {
-                const res = await trainingService.getAdminCategories();
-                setCategories(res.data.categories || []);
-            } catch (err) {
-                setCatError('Failed to load training categories');
-            } finally {
-                setCatLoading(false);
-            }
-        };
-        fetchCategories();
-    }, []);
-
-    const handleToggleCategory = async (cat) => {
-        setCatUpdating((prev) => ({ ...prev, [cat.id]: true }));
-        try {
-            await trainingService.updateCategory(cat.id, { is_active: !cat.is_active });
-            setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: !cat.is_active } : c));
-        } catch (err) {
-            alert('Failed to update category status');
-        } finally {
-            setCatUpdating((prev) => ({ ...prev, [cat.id]: false }));
-        }
-    };
-
     if (statsLoading) {
         return <LoadingSpinner fullScreen={false} />;
     }
@@ -349,6 +314,16 @@ const AdminDashboardPage = () => {
                             <strong>Manage Training Categories</strong>
                             <span>Add YouTube lessons and Notes shown in the public training section.</span>
                         </Link>
+                        <Link to="/admin/consulting" className="admin-management-link">
+                            <strong>Manage Consulting</strong>
+                            <span>Maintain consulting services and review consultation requests.</span>
+                        </Link>
+                        {/* Unified analytics temporarily disabled.
+                        <Link to="/admin/analytics" className="admin-management-link">
+                            <strong>Unified Analytics</strong>
+                            <span>View cross-platform activity, trends, and top content in one dashboard.</span>
+                        </Link>
+                        */}
                     </div>
                 </div>
             </div>

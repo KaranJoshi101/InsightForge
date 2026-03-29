@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import surveyService from '../services/surveyService';
 import responseService from '../services/responseService';
-import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import BackLink from '../components/BackLink';
@@ -14,7 +13,6 @@ const SurveysPage = () => {
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [submittedSurveys, setSubmittedSurveys] = useState(new Map());
-    const [feedbackSurveyIds, setFeedbackSurveyIds] = useState(new Set());
 
     const formatSubmittedAt = (submittedAt) => {
         if (!submittedAt) {
@@ -58,26 +56,9 @@ const SurveysPage = () => {
     const fetchSurveys = useCallback(async () => {
         try {
             setLoading(true);
-            const [surveyResult, mediaResult] = await Promise.allSettled([
-                surveyService.getAllSurveys(1, 500, 'published'),
-                api.get('/media', { params: { limit: 500 } }),
-            ]);
+            const surveyResult = await surveyService.getAllSurveys(1, 500, 'published', true);
 
-            if (surveyResult.status !== 'fulfilled') {
-                throw surveyResult.reason;
-            }
-
-            setSurveys(surveyResult.value.data.surveys);
-
-            const posts = mediaResult.status === 'fulfilled' && Array.isArray(mediaResult.value.data?.posts)
-                ? mediaResult.value.data.posts
-                : [];
-            const linkedSurveyIds = new Set(
-                posts
-                    .map((post) => Number(post.survey_id))
-                    .filter((surveyId) => Number.isInteger(surveyId) && surveyId > 0)
-            );
-            setFeedbackSurveyIds(linkedSurveyIds);
+            setSurveys(surveyResult.data.surveys || []);
             setError('');
         } catch (err) {
             setError('Failed to load surveys');
@@ -100,10 +81,9 @@ const SurveysPage = () => {
 
     const pureSurveys = useMemo(() => {
         return filteredSurveys.filter((survey) => {
-            const id = Number(survey.id);
-            return !Boolean(survey.is_feedback) && !feedbackSurveyIds.has(id);
+            return !Boolean(survey.is_feedback);
         });
-    }, [filteredSurveys, feedbackSurveyIds]);
+    }, [filteredSurveys]);
 
     const renderSurveyCards = (list, palette) => {
         if (list.length === 0) {

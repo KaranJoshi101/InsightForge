@@ -199,6 +199,161 @@ const submitResponseValidation = [
         .toInt(),
 ];
 
+const consultingServiceWriteValidation = [
+    body('title')
+        .optional()
+        .isString()
+        .trim()
+        .isLength({ min: 3, max: 200 })
+        .withMessage('title must be between 3 and 200 characters'),
+    body('slug')
+        .optional()
+        .isString()
+        .trim()
+        .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+        .withMessage('slug must be lowercase words separated by hyphens'),
+    body('short_description')
+        .optional()
+        .isString()
+        .trim()
+        .isLength({ min: 20, max: 500 })
+        .withMessage('short_description must be between 20 and 500 characters'),
+        body('hero_subtitle')
+            .optional({ nullable: true })
+            .isString()
+            .isLength({ min: 20, max: 400 })
+            .withMessage('hero_subtitle must be between 20 and 400 characters'),
+        body('hero_benefits')
+            .optional({ nullable: true })
+            .isArray({ min: 1, max: 6 })
+            .withMessage('hero_benefits must be an array with 1 to 6 items'),
+        body('hero_benefits.*')
+            .optional({ nullable: true })
+            .isString()
+            .trim()
+            .isLength({ min: 4, max: 180 })
+            .withMessage('each hero benefit must be between 4 and 180 characters'),
+    body('content')
+        .optional()
+        .isString()
+        .isLength({ min: 30, max: 50000 })
+        .withMessage('content must be between 30 and 50000 characters'),
+    body('deliverables')
+        .optional({ nullable: true })
+        .isString()
+        .isLength({ max: 10000 })
+        .withMessage('deliverables must be at most 10000 characters'),
+    body('target_audience')
+        .optional({ nullable: true })
+        .isString()
+        .isLength({ max: 5000 })
+        .withMessage('target_audience must be at most 5000 characters'),
+    body('is_active')
+        .optional()
+        .isBoolean()
+        .withMessage('is_active must be a boolean')
+        .toBoolean(),
+];
+
+const consultingRequestValidation = [
+    body('service_id')
+        .isInt({ min: 1 })
+        .withMessage('service_id must be a positive integer')
+        .toInt(),
+    body('name')
+        .isString()
+        .trim()
+        .isLength({ min: 2, max: 120 })
+        .withMessage('name must be between 2 and 120 characters'),
+    body('email')
+        .isEmail()
+        .withMessage('email must be valid')
+        .normalizeEmail(),
+    body('message')
+        .isString()
+        .trim()
+        .isLength({ min: 10, max: 5000 })
+        .withMessage('message must be between 10 and 5000 characters'),
+];
+
+const consultingEventValidation = [
+    body('service_id')
+        .isInt({ min: 1 })
+        .withMessage('service_id must be a positive integer')
+        .toInt(),
+    body('event_type')
+        .isIn(['view', 'submit'])
+        .withMessage('event_type must be either view or submit'),
+    body('session_id')
+        .optional({ nullable: true })
+        .isString()
+        .trim()
+        .isLength({ min: 8, max: 120 })
+        .withMessage('session_id must be between 8 and 120 characters'),
+    body('metadata')
+        .optional({ nullable: true })
+        .isObject()
+        .withMessage('metadata must be a JSON object'),
+];
+
+const consultingAnalyticsServiceValidation = [
+    ...idParam('id'),
+    query('days')
+        .optional()
+        .isIn(['7', '30'])
+        .withMessage('days must be 7 or 30')
+        .toInt(),
+];
+
+const consultingRequestAdminUpdateValidation = [
+    ...idParam('id'),
+    body('status')
+        .optional()
+        .isIn(['new', 'in_progress', 'waiting_user', 'resolved', 'closed'])
+        .withMessage('status must be one of new, in_progress, waiting_user, resolved, closed'),
+    body('priority')
+        .optional()
+        .isIn(['low', 'medium', 'high', 'urgent'])
+        .withMessage('priority must be one of low, medium, high, urgent'),
+    body('notes')
+        .optional({ nullable: true })
+        .isString()
+        .trim()
+        .isLength({ max: 5000 })
+        .withMessage('notes must be at most 5000 characters'),
+];
+
+const consultingRequestAdminIdValidation = [
+    ...idParam('id'),
+];
+
+const analyticsEventValidation = [
+    body('event_type')
+        .isIn(['page_view', 'survey_submit', 'consulting_view', 'consulting_request', 'article_view', 'media_view', 'training_view'])
+        .withMessage('event_type is invalid'),
+    body('entity_type')
+        .isIn(['survey', 'article', 'media', 'training', 'consulting', 'platform'])
+        .withMessage('entity_type is invalid'),
+    body('entity_id')
+        .optional({ nullable: true })
+        .custom((value) => value === null || Number.isInteger(Number(value)))
+        .withMessage('entity_id must be an integer or null')
+        .customSanitizer((value) => {
+            if (value === null || value === undefined || value === '') return null;
+            return Number.parseInt(value, 10);
+        }),
+    body('metadata')
+        .optional({ nullable: true })
+        .isObject()
+        .withMessage('metadata must be a JSON object'),
+    body('session_id')
+        .optional({ nullable: true })
+        .isString()
+        .trim()
+        .isLength({ min: 8, max: 120 })
+        .withMessage('session_id must be between 8 and 120 characters'),
+];
+
 module.exports = {
     idParam,
     paginationQuery,
@@ -209,4 +364,11 @@ module.exports = {
     articleWriteValidation,
     profileUpdateValidation,
     submitResponseValidation,
+    consultingServiceWriteValidation,
+    consultingRequestValidation,
+    consultingEventValidation,
+    consultingAnalyticsServiceValidation,
+    consultingRequestAdminUpdateValidation,
+    consultingRequestAdminIdValidation,
+    analyticsEventValidation,
 };

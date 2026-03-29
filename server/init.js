@@ -43,14 +43,47 @@ const initDatabase = async () => {
             password: process.env.DB_PASSWORD,
         });
 
-        console.log('📋 Creating tables...');
-        const schema = fs.readFileSync(
-            path.join(__dirname, '../database/migrations/01_initial_schema.sql'),
-            'utf8'
-        );
+        console.log('📋 Running database migrations...');
 
-        await newPool.query(schema);
-        console.log('✅ Tables created successfully\n');
+        const migrations = [
+            '01_initial_schema.sql',
+            '02_add_is_banned.sql',
+            '03_add_profile_fields.sql',
+            '04_add_question_type_filters.sql',
+            '05_add_media_posts.sql',
+            '06_add_media_details_survey.sql',
+            '07_refactor_media_to_use_article_id.sql',
+            '08_create_training_videos.sql',
+            '09_create_training_playlists.sql',
+            '10_add_youtube_playlist_url.sql',
+            '11_add_survey_submission_email_fields.sql',
+            '12_add_signup_otp_verifications.sql',
+            '13_add_training_categories_and_notes.sql',
+            '14_drop_unused_fields.sql',
+            '15_add_consulting_services.sql',
+            '16_add_consulting_hero_fields.sql',
+            '17_add_consulting_events.sql',
+            '18_add_consulting_request_workflow_fields.sql',
+            '19_create_platform_events.sql',
+            '20_remove_consulting_request_assignment.sql',
+        ];
+
+        for (const migration of migrations) {
+            try {
+                console.log(`  ➜ Running ${migration}...`);
+                const sql = fs.readFileSync(
+                    path.join(__dirname, '../database/migrations', migration),
+                    'utf8'
+                );
+
+                await newPool.query(sql);
+                console.log(`  ✓ ${migration} completed`);
+            } catch (err) {
+                console.log(`  ⚠️  ${migration} - ${err.message}`);
+            }
+        }
+
+        console.log('✅ Migrations completed\n');
 
         // Step 3: Seed data (optional)
         try {

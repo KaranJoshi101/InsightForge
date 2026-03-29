@@ -153,6 +153,7 @@ const LandingPage = () => {
                     <li><Link to="/surveys" onClick={() => setMobileMenuOpen(false)}>Surveys</Link></li>
                     <li><Link to="/training" onClick={() => setMobileMenuOpen(false)}>Training</Link></li>
                     <li><Link to="/articles" onClick={() => setMobileMenuOpen(false)}>Articles</Link></li>
+                    <li><Link to="/consulting" onClick={() => setMobileMenuOpen(false)}>Consulting</Link></li>
                     <li><Link to="/media" onClick={() => setMobileMenuOpen(false)}>Media</Link></li>
                     <li>
                         <Link

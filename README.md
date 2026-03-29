@@ -5,11 +5,14 @@ Survey platform built with PostgreSQL, Express, React, and Node.js.
 ## Features
 
 - JWT authentication (user/admin roles)
-- Survey creation, publishing, and response collection
-- Analytics endpoints (including demographics and export)
-- Article publishing and management
-- Consulting services pages with consultation request capture
-- Admin dashboard for users, surveys, and content
+- Survey creation, publishing, response collection, and exports
+- Survey analytics (question-level + demographics)
+- Article publishing and management (rich text)
+- Media feed administration
+- Training category, playlist, and notes administration
+- Consulting services and authenticated consultation request workflow
+- Consulting analytics with period selector (`7d`, `30d`, `all`)
+- Admin dashboard for users, surveys, responses, content, and consulting
 
 ## Tech Stack
 
@@ -151,7 +154,25 @@ App URLs:
 - `npm run pm2:restart` - Restart PM2 app and refresh env
 - `npm run pm2:stop` - Stop PM2 app
 - `npm run db:init` - Initialize database
+- `npm run db:sync:prod` - Backup production DB, sync local DB to production, and verify counts
 - `npm run install-all` - Install root/server/client dependencies
+
+## Admin Routes (Current)
+
+- `/admin`
+- `/admin/surveys`
+- `/admin/surveys/create`
+- `/admin/surveys/:id/edit`
+- `/admin/surveys/:id/analytics`
+- `/admin/responses`
+- `/admin/users`
+- `/admin/articles`
+- `/admin/media`
+- `/admin/training`
+- `/admin/consulting`
+- `/admin/consulting/analytics`
+
+Note: unified analytics route `/admin/analytics` is currently disabled in the app router.
 
 ## Push To GitHub
 

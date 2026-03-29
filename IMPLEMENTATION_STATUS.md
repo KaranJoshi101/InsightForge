@@ -1,162 +1,109 @@
 # Survey Application - Implementation Status
 
-## 🎯 Overall Progress
+Version: 2.0
+Last Updated: 2026-03-29
 
-✅ **Step 1: Database Design** - COMPLETE
-✅ **Step 2: Backend Setup** - COMPLETE
-⏳ **Step 3: Frontend Development** - READY
-⏳ **Step 4: Integration & Testing** - PENDING
+## 1. Overall Status
 
----
+- Core platform: complete
+- Admin modules: complete
+- Consulting workflow and analytics: complete
+- Documentation refresh: in progress and actively maintained
 
-## ✅ Step 1: Database Design (COMPLETE)
+## 2. Implemented Modules
 
-### Tables Created (7)
-- ✅ users
-- ✅ surveys
-- ✅ questions
-- ✅ options
-- ✅ responses
-- ✅ answers
-- ✅ articles
+### Authentication and Profiles
+- JWT authentication and role-based authorization
+- Register, login, current-user APIs
+- Profile view/edit flows
 
-### Features
-- ✅ ENUM types (user_role, question_type, survey_status)
-- ✅ 8 Performance indexes
-- ✅ Cascade delete relationships
-- ✅ Unique constraint for duplicate response prevention
-- ✅ Seed data with test users and sample survey
+### Surveys and Responses
+- Survey CRUD and publish/unpublish lifecycle
+- Advanced survey builder question types:
+	- `text`, `text_only`, `number_only`, `multiple_choice`, `checkbox`, `rating`
+- Duplicate-response prevention per user/survey
+- Responses list/detail and exports
+- Survey analytics and demographics
 
----
+### Content Modules
+- Articles CRUD with rich text editing
+- Media feed management
+- Training categories, playlists, and notes administration
 
-## ✅ Step 2: Backend Setup (COMPLETE)
+### Consulting Module
+- Public consulting services and service detail pages
+- Authenticated consultation request submission (with optional file upload)
+- Consulting request workflow in admin (`status`, `priority`, `notes`)
+- `assigned_to` workflow removed
+- Consulting analytics dashboard with:
+	- totals and conversion
+	- unique view context
+	- period selector (`7d`, `30d`, `all`)
+	- trend charts
 
-### Core Infrastructure
-- ✅ Express.js server with middleware
-- ✅ CORS enabled for frontend integration
-- ✅ Request logging middleware
-- ✅ Error handling middleware
-- ✅ Environment configuration (.env)
+## 3. Admin Surface Status
 
-### Authentication System
-- ✅ JWT token generation and verification
-- ✅ Password hashing with bcryptjs
-- ✅ Authentication middleware
-- ✅ Role-based authorization (admin/user)
-- ✅ Token extraction from headers
+Active admin routes:
 
-### API Endpoints (28 Total)
+- `/admin`
+- `/admin/surveys`
+- `/admin/surveys/create`
+- `/admin/surveys/:id/edit`
+- `/admin/surveys/:id/analytics`
+- `/admin/responses`
+- `/admin/users`
+- `/admin/articles`
+- `/admin/media`
+- `/admin/training`
+- `/admin/consulting`
+- `/admin/consulting/analytics`
 
-#### Authentication (3)
-- ✅ POST /api/auth/register
-- ✅ POST /api/auth/login
-- ✅ GET /api/auth/me
+Note: `/admin/analytics` (unified analytics page) is currently disabled in app routing.
 
-#### Surveys (7)
-- ✅ GET /api/surveys (with pagination & filtering)
-- ✅ GET /api/surveys/:id
-- ✅ POST /api/surveys (admin)
-- ✅ PUT /api/surveys/:id (admin)
-- ✅ DELETE /api/surveys/:id (admin)
-- ✅ POST /api/surveys/:surveyId/questions (admin)
-- ✅ POST /api/surveys/questions/:questionId/options (admin)
+## 4. Database and Migrations Status
 
-#### Responses (4)
-- ✅ POST /api/responses (submit response)
-- ✅ GET /api/responses/survey/:surveyId (admin)
-- ✅ GET /api/responses/:responseId
-- ✅ GET /api/responses/survey/:surveyId/analytics (admin)
+Migrations currently in use include:
 
-#### Articles (6)
-- ✅ GET /api/articles (public)
-- ✅ GET /api/articles/:id (public)
-- ✅ POST /api/articles (admin)
-- ✅ PUT /api/articles/:id (admin)
-- ✅ DELETE /api/articles/:id (admin)
-- ✅ GET /api/articles/admin/my-articles (admin)
+- `01_initial_schema.sql`
+- `02_add_is_banned.sql`
+- `03_add_profile_fields.sql`
+- `04_add_question_type_filters.sql`
+- `05_add_media_posts.sql`
+- `06_add_media_details_survey.sql`
+- `07_refactor_media_to_use_article_id.sql`
+- `08_create_training_videos.sql`
+- `09_create_training_playlists.sql`
+- `10_add_youtube_playlist_url.sql`
+- `11_add_survey_submission_email_fields.sql`
+- `12_add_signup_otp_verifications.sql`
+- `13_add_training_categories_and_notes.sql`
+- `14_drop_unused_fields.sql`
+- `15_add_consulting_services.sql`
+- `16_add_consulting_hero_fields.sql`
+- `17_add_consulting_events.sql`
+- `18_add_consulting_request_workflow_fields.sql`
+- `19_create_platform_events.sql`
+- `20_remove_consulting_request_assignment.sql`
 
-#### General (2)
-- ✅ GET / (API info)
-- ✅ GET /api/health (Health check)
+## 5. Operations and Utility Status
 
-### Controllers (4)
-- ✅ authController.js - User registration, login, profile
-- ✅ surveyController.js - Survey management
-- ✅ responseController.js - Response submission & analytics
-- ✅ articleController.js - Article management
+Implemented utility scripts:
 
-### Utilities & Middleware
-- ✅ utils/auth.js - JWT & password utilities
-- ✅ middleware/auth.js - Authentication & authorization
-- ✅ middleware/errorHandler.js - Error handling
-- ✅ middleware/requestLogger.js - Request logging
+- `npm run smoke`
+- `npm run db:init`
+- `npm run db:sync:prod`
+- `npm run seed:consulting`
+- `npm run verify:consulting-seed`
 
-### Documentation
-- ✅ API_DOCUMENTATION.md - Complete API reference
-- ✅ STEP2_BACKEND_SETUP.md - Backend implementation details
-- ✅ DATABASE_SCHEMA.md - Database design documentation
+`db:sync:prod` now supports backup + local-to-prod restore + verification flow.
 
----
+## 6. Known Current Focus
 
-## 🚀 Server Status
+- Local runtime start failures were observed in recent terminals (`npm run server`, `npm start`, `npm run start:server` returning exit code 1).
+- Functional code and docs updates are complete; runtime troubleshooting can continue as a separate task.
 
-✅ Server starts successfully
-✅ Health check endpoint responds
-✅ Database connection configured
-✅ All routes registered
-✅ Middleware stack configured
+## 7. Recommended Next Checks
 
-### Test Results
-Server listening on: http://localhost:5000
-Database: survey_app @ localhost:5433
-Environment: development
-Health check: OK
-
----
-
-## 📊 API Endpoints Quick Reference
-
-| Method | Endpoint | Auth | Purpose |
-|--------|----------|------|---------|
-| POST | /api/auth/register | No | Register user |
-| POST | /api/auth/login | No | Login user |
-| GET | /api/surveys | No | List surveys |
-| POST | /api/surveys | Yes/Admin | Create survey |
-| POST | /api/responses | Yes/User | Submit response |
-| GET | /api/articles | No | View articles |
-| POST | /api/articles | Yes/Admin | Create article |
-
----
-
-## 🧪 Test Credentials (Seed Data)
-
-Admin: admin@surveyapp.com / admin123
-User: john@example.com / admin123
-User: jane@example.com / admin123
-User: bob@example.com / admin123
-
----
-
-## ⏭️ Next Steps: Step 3 - Frontend Development
-
-Ready to implement React components for:
-- Authentication Pages (Login, Register, Profile)
-- Survey Pages (List, Detail, Create, Edit)
-- Response Pages (Form, Submission, History)
-- Analytics Pages (Statistics, Charts)
-- Article Pages (List, Detail, Editor)
-- Navigation & Layout
-
----
-
-## 🎓 Summary
-
-All backend infrastructure is complete and tested. The API server is production-ready with:
-- Complete authentication system
-- Role-based access control
-- Full CRUD operations for all modules
-- Error handling and logging
-- Database integration
-- Pagination and filtering
-
-The application is ready to move to the React frontend implementation.
+1. Re-run backend and frontend start commands with full error output capture.
+2. Verify production deployment includes latest backend and frontend commits.
+3. Re-check admin consulting analytics period switching in production UI.

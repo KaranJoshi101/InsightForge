@@ -1,303 +1,131 @@
-# 🚀 Survey Application - Complete Setup & Quick Start
+# Survey Application - Quick Start
 
-## Project Status: ✅ FULLY IMPLEMENTED
+## 1. Prerequisites
 
-Everything is complete and ready to run!
+- Node.js 18+
+- npm 9+
+- PostgreSQL 12+
 
----
+## 2. Configure Environment
 
-## Quick Start (3 Steps)
+Create `.env` in the project root with valid local values.
 
-### Step 1: Start Backend Server
-```bash
-cd /d/softee/survey-app
-npm run server
-```
-**Backend runs on**: http://localhost:5000
+Example:
 
-### Step 2: Start Frontend Application
-```bash
-# In a new terminal
-cd /d/softee/survey-app/client
-npm start
-```
-**Frontend runs on**: http://localhost:3000
-
-### Step 3: Access the Application
-Open browser and go to: **http://localhost:3000**
-
----
-
-## Demo Login Credentials
-
-```
-Admin Account:
-Email: manojkumar@jnu.ac.in
-Password: manoj123
-
-Regular User:
-Email: marcus.j@healthcare.com
-Password: admin123
-```
-
----
-
-## What You Can Do
-
-### As a Regular User:
-✓ Register/Login
-✓ Browse published surveys
-✓ Take surveys
-✓ View your responses
-✓ Read articles
-✓ View profile
-
-### As an Admin:
-✓ All user features +
-✓ Create new surveys
-✓ Edit surveys
-✓ Delete surveys
-✓ Manage articles
-✓ View admin dashboard
-
----
-
-## Project Structure Overview
-
-```
-/d/softee/survey-app/
-│
-├── server/                    [BACKEND - Express.js]
-│   ├── index.js              - Main server file
-│   ├── init.js               - Database initialization
-│   ├── config/               - Database config
-│   ├── controllers/          - Business logic (4 controllers)
-│   ├── routes/               - API routes (28 endpoints)
-│   ├── middleware/           - Auth, error handling, logging
-│   ├── services/             - API services
-│   └── utils/                - Helper utilities
-│
-├── client/                    [FRONTEND - React]
-│   ├── src/
-│   │   ├── pages/            - 11 page components
-│   │   ├── components/       - Reusable components
-│   │   ├── context/          - React context (Auth)
-│   │   ├── services/         - API service layer
-│   │   ├── App.js            - Main app component
-│   │   ├── index.js          - Entry point
-│   │   └── index.css         - Styling
-│   └── public/               - Static files
-│
-├── database/                 [DATABASE - PostgreSQL]
-│   ├── migrations/           - Database schema
-│   ├── seeds/                - Sample data
-│   └── init.js               - Init script
-│
-├── docs/                     [DOCUMENTATION]
-│   ├── README.md
-│   ├── API_DOCUMENTATION.md
-│   ├── DATABASE_SCHEMA.md
-│   ├── SETUP.md
-│   ├── STEP2_BACKEND_SETUP.md
-│   └── STEP3_FRONTEND_DEVELOPMENT.md
-│
-├── .env                      [Configuration]
-└── package.json             [Root config]
-```
-
----
-
-## Technology Stack
-
-### Backend
-- **Node.js** + **Express.js** 4.18
-- **PostgreSQL** database
-- **JWT** authentication
-- **bcryptjs** password hashing
-- **CORS** enabled
-
-### Frontend
-- **React** 18
-- **React Router** v6
-- **Axios** HTTP client
-- **Context API** state management
-- **CSS3** responsive design
-
-### Database
-- **PostgreSQL** 12+
-- 7 tables with proper relationships
-- 8 performance indexes
-- Cascade delete on foreign keys
-
----
-
-## API Endpoints (28 Total)
-
-### Authentication (3)
-- POST /auth/register
-- POST /auth/login
-- GET /auth/me
-
-### Surveys (7)
-- GET /surveys
-- GET /surveys/:id
-- POST /surveys
-- PUT /surveys/:id
-- DELETE /surveys/:id
-- POST /surveys/:id/questions
-- POST /surveys/questions/:id/options
-
-### Responses (4)
-- POST /responses
-- GET /responses/survey/:id
-- GET /responses/:id
-- GET /responses/survey/:id/analytics
-
-### Articles (6)
-- GET /articles
-- GET /articles/:id
-- POST /articles
-- PUT /articles/:id
-- DELETE /articles/:id
-- GET /articles/admin/my-articles
-
-### Utility (2)
-- GET /api/health
-- GET /
-
----
-
-## Screenshots of Features
-
-### Login Page
-- Clean, minimal design
-- Demo credentials shown
-- Registration link
-
-### User Dashboard
-- Quick access to surveys, articles, admin
-- Profile information
-- Emoji-based navigation
-
-### Surveys Page
-- List of all published surveys
-- Pagination
-- Card-based layout
-
-### Take Survey Page
-- Interactive form
-- Support for:
-  - Text answers
-  - Rating (1-5)
-  - Multiple choice
-  - Checkboxes
-- Form validation
-
-### Admin Dashboard
-- Survey management table
-- Create, edit, delete surveys
-- Statistics overview
-
-### Articles Page
-- Read published articles
-- Article listing with pagination
-
----
-
-## Environment Variables
-
-Use your local `.env` values (never commit secrets). Example:
-```
+```env
 DB_HOST=localhost
 DB_PORT=5433
 DB_NAME=survey_app
 DB_USER=postgres
 DB_PASSWORD=your_postgres_password
+DB_SSL=false
+
 SERVER_PORT=5000
 NODE_ENV=development
-JWT_SECRET=your_jwt_secret_key_change_this
+
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRE=7d
+
 REACT_APP_API_URL=http://localhost:5000/api
 ```
 
----
+## 3. Install Dependencies
 
-## Key Features
+From root:
 
-✅ **User Authentication**
-- Secure JWT-based auth
-- Password hashing with bcryptjs
-- Auto-logout on token expiry
-
-✅ **Survey Management**
-- Create surveys with questions
-- Multiple question types
-- Prevent duplicate responses
-- Publish/draft/closed status
-
-✅ **Analytics**
-- Response statistics
-- Question-wise breakdown
-- Response counting
-
-✅ **Article System**
-- Publish articles
-- Read articles
-- Manage content
-
-✅ **Admin Controls**
-- Admin-only routes
-- Survey management
-- Content moderation
-
-✅ **User Experience**
-- Responsive design
-- Loading states
-- Error handling
-- Form validation
-- Pagination
-
----
-
-## Troubleshooting
-
-### Backend not starting?
 ```bash
-# Check if configured backend port is in use
-# Kill the process and try again
-taskkill /PID <process_id> /F
-npm run server
+npm run install-all
 ```
 
-### Frontend not connecting?
-- Check backend is running on configured API port (default :5000)
-- Check REACT_APP_API_URL in .env
-- Clear browser cache and reload
+## 4. Initialize Database
 
-### Database errors?
-- Verify PostgreSQL is running
-- Check credentials in .env
-- Run initialization: `npm run db:init`
+```bash
+npm run db:init
+```
 
-### Port already in use?
-- Change SERVER_PORT in .env to 5002, 5003, etc.
-- Or kill process using the port
+## 5. Run The App
 
----
+Option A (both services):
 
-## Testing Checklist
+```bash
+npm run dev
+```
 
-- [ ] Backend server starts on configured port (default 5000)
-- [ ] Frontend starts on port 3000
-- [ ] Can register new user
-- [ ] Can login with demo credentials
-- [ ] Can view surveys list
-- [ ] Can view survey details
-- [ ] Can take a survey
-- [ ] Can submit survey response
-- [ ] Can view submitted responses
-- [ ] Can read articles
-- [ ] Admin can create surveys
-- [ ] Admin can delete surveys
+Option B (separate terminals):
+
+```bash
+npm run server
+npm run client
+```
+
+Default URLs:
+
+- Frontend: http://localhost:3000
+- API: http://localhost:5000/api
+- API health: http://localhost:5000/api/health
+
+## 6. Admin Surface (Current)
+
+- `/admin`
+- `/admin/surveys`
+- `/admin/surveys/create`
+- `/admin/surveys/:id/edit`
+- `/admin/surveys/:id/analytics`
+- `/admin/responses`
+- `/admin/users`
+- `/admin/articles`
+- `/admin/media`
+- `/admin/training`
+- `/admin/consulting`
+- `/admin/consulting/analytics`
+
+Note: unified analytics route `/admin/analytics` is currently disabled.
+
+## 7. High-Value Features
+
+- Survey builder with advanced question types (`text`, `text_only`, `number_only`, `multiple_choice`, `checkbox`, `rating`)
+- Survey responses export to Excel
+- Survey analytics and demographics views
+- Rich text article management
+- Media feed admin management
+- Training categories, playlists, and notes admin
+- Consulting service management and request workflow (`status`, `priority`, `notes`)
+- Consulting analytics with period selector (`7d`, `30d`, `all`)
+
+## 8. Production DB Sync (Optional)
+
+If you need to mirror local DB schema/data to production:
+
+```bash
+npm run db:sync:prod
+```
+
+This script performs:
+
+1. Production backup
+2. Local dump
+3. Restore local dump to production
+4. Verification counts
+
+## 9. Troubleshooting
+
+### Backend fails to start
+
+1. Check `.env` DB values and PostgreSQL availability.
+2. Check if backend port is already in use.
+3. Run `npm run db:init` if schema is missing.
+
+### Frontend fails to connect
+
+1. Confirm backend is running.
+2. Confirm `REACT_APP_API_URL` matches backend API URL.
+3. Restart frontend after changing env values.
+
+### Analytics values look stale
+
+1. Use refresh button on consulting analytics page.
+2. Confirm selected period (`7d`, `30d`, `all`).
+3. Verify counts directly in DB if needed.
 - [ ] Navbar shows current user
 - [ ] Logout works correctly
 - [ ] Can't access admin pages as regular user

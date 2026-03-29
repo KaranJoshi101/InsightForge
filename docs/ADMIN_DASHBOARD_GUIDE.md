@@ -1,291 +1,243 @@
 # Admin Dashboard Guide
 
-Version: 2.0
+Version: 3.0
 Last Updated: 2026-03-29
 
-This guide documents all admin features currently available in the platform.
+This guide documents the current admin capabilities and the concrete implementation steps used in this codebase.
 
-## 1. Access and Permissions
+## 1. Access, Security, and Routes
 
-### Who can use admin pages
-- Only users with admin role can access admin routes.
-- Non-admin users are redirected away from admin pages.
+### Access model
+- Admin pages require authenticated admin users.
+- Route protection is enforced on both client and server:
+  - Client: Protected admin routes in the app router.
+  - Server: `authenticate` + `authorize` middleware on admin APIs.
 
-### Admin route map
-- /admin
-- /admin/surveys
-- /admin/surveys/create
-- /admin/surveys/:id/edit
-- /admin/surveys/:id/analytics
-- /admin/responses
-- /admin/users
-- /admin/articles
-- /admin/media
-- /admin/training
-- /admin/consulting
-- /admin/consulting/analytics
+### Active admin routes
+- `/admin`
+- `/admin/surveys`
+- `/admin/surveys/create`
+- `/admin/surveys/:id/edit`
+- `/admin/surveys/:id/analytics`
+- `/admin/responses`
+- `/admin/users`
+- `/admin/articles`
+- `/admin/media`
+- `/admin/training`
+- `/admin/consulting`
+- `/admin/consulting/analytics`
 
-## 2. Admin Dashboard (/admin)
+### Temporarily disabled route
+- Unified platform analytics admin page (`/admin/analytics`) is intentionally commented out in the app router.
 
-### What it shows
-- Survey category distribution chart.
-- User status distribution chart.
-- Article category distribution chart.
-- Training category status distribution chart.
+## 2. Feature Inventory (Current)
 
-### Management shortcuts
-- Manage Surveys
-- Manage Users
-- Manage Articles
-- Manage Media
-- Manage Training Categories
-- Manage Consulting
-- Consulting Analytics
+### 2.1 Admin Dashboard (`/admin`)
+- Doughnut chart modules:
+  - Survey category distribution.
+  - User status distribution.
+  - Article category distribution.
+  - Training category status distribution.
+- Quick navigation cards for all active admin modules.
 
-## 3. Survey Management (/admin/surveys)
+### 2.2 Survey Management (`/admin/surveys`)
+- Survey listing with search by title.
+- Survey status chips and summary counters.
+- Create, edit, publish, unpublish, and delete actions.
+- One-click survey response export to Excel.
+- Jump to survey analytics page.
+- Question count display per survey.
 
-### Capabilities
-- View all surveys in a table.
-- Search surveys by name.
-- View status chips (published/draft).
-- Create new survey.
-- Edit existing survey.
-- Open per-survey analytics page.
-- Export survey responses to Excel.
-- Publish draft surveys.
-- Unpublish published surveys.
-- Delete surveys.
+### 2.3 Survey Builder (`/admin/surveys/create`, `/admin/surveys/:id/edit`)
+- Survey metadata:
+  - Title, description.
+  - Submission email subject and body.
+  - Submission email attachments (upload and remove).
+- Question builder:
+  - Add, remove, and reorder questions.
+  - Required flag per question.
+  - Supported types: `text`, `text_only`, `number_only`, `multiple_choice`, `checkbox`, `rating`.
+  - Option management for option-based questions.
+- Validation:
+  - Title required.
+  - Question text required.
+  - Option-based questions require at least two non-empty options.
 
-### Included indicators
-- Total surveys
-- Published count
-- Draft count
-
-## 4. Survey Builder (/admin/surveys/create and /admin/surveys/:id/edit)
-
-### Survey-level controls
-- Title and description.
-- Submission email subject/body.
-- Submission email attachment uploads.
-
-### Question builder
-- Add/remove/reorder questions by form order.
-- Supported types:
-  - Long Text
-  - Short Text (text only)
-  - Number Only
-  - Multiple Choice
-  - Checkbox
-  - Rating
-- Mark question required/optional.
-- Add/edit/delete options for option-based questions.
-
-### Validation and save behavior
-- Title required.
-- Question text required.
-- Option-based questions require at least 2 non-empty options.
-- Create and edit flows both supported.
-
-## 5. Survey Responses Hub (/admin/responses)
-
-### Capabilities
-- Select any survey from sidebar list.
-- Load responses for selected survey.
-- Search responses by user name, user email, or user ID.
-- View analytics summary for selected survey.
+### 2.4 Response Hub (`/admin/responses`)
+- Survey selector and response table for selected survey.
+- URL-synced selected survey ID.
+- Search responses by user name, email, or user ID.
+- Survey-level analytics summary.
 - Export selected survey responses to Excel.
-- Open full analytics page for selected survey.
+- Link to full survey analytics view.
 
-### Summary stats shown
-- Total responses
-- Unique users
-- Questions count
+### 2.5 Survey Analytics (`/admin/surveys/:id/analytics`)
+- Question-level analytics with chart rendering:
+  - Multiple choice and checkbox distributions.
+  - Rating distributions and averages.
+  - Text answers listing.
+- Respondent list with search.
+- Respondent profile quick-view.
+- Demographic charts (gender, age, location).
 
-## 6. Survey Analytics (/admin/surveys/:id/analytics)
+### 2.6 User Management (`/admin/users`)
+- Paginated users table.
+- Debounced search by name/email.
+- Ban and unban flows.
+- Permanent delete flow for banned, non-admin users only.
+- Extended user profile preview (age, gender, phone, location, bio, timestamps).
 
-### Capabilities
-- Detailed question-level analytics using charts.
-- Multiple choice and checkbox analytics:
-  - Bar chart + doughnut chart
-  - Option counts and percentages
-- Rating analytics:
-  - Distribution chart
-  - Average rating
-- Text-response analytics:
-  - Scrollable response list with respondent names
-- Respondent list and search.
-- User profile quick view for respondents.
+### 2.7 Article Management (`/admin/articles`)
+- Create, update, publish, unpublish, delete.
+- Rich text editor with:
+  - Formatting, lists, blockquote, code-block, links, images.
+  - Client-side image compression before embed.
+  - Link normalization.
 
-### Demographics section
-- Gender distribution
-- Age distribution
-- Location distribution
+### 2.8 Media Management (`/admin/media`)
+- Admin mode media grid with create/edit/delete behaviors for media posts.
+- Uses the shared media module UI with admin controls enabled.
 
-## 7. User Management (/admin/users)
+### 2.9 Training Administration (`/admin/training`)
+- Category CRUD.
+- Playlist import by YouTube playlist URL.
+- Playlist listing and deletion.
+- Playlist item drill-down.
+- Category notes CRUD.
+- Note document upload support.
+- Breadcrumb-based navigation through categories, notes, and videos.
 
-### Capabilities
-- Paginated user table.
-- Search users by name or email (debounced).
-- View user role and status.
-- Ban user.
-- Unban user.
-- Permanently delete banned non-admin user.
-- Open user profile modal with extended profile fields.
+### 2.10 Consulting Management (`/admin/consulting`)
+- Consulting services CRUD with active/inactive control.
+- Service fields:
+  - `title`, `slug`, `short_description`, `hero_subtitle`, `hero_benefits`, `content`, `deliverables`, `target_audience`, `is_active`.
+- Request operations:
+  - Paginated request table.
+  - Request detail modal.
+  - Workflow updates for `status`, `priority`, and `notes`.
+  - Attachment link handling.
+- Email helper tools:
+  - Template selection.
+  - Subject/body auto-fill.
+  - Mail client handoff and copy support.
+- Note: `assigned_to` was removed from the request workflow and is no longer part of the admin UI/API updates.
 
-### Profile modal fields
-- Name
-- Email
-- Role
-- Status
-- Age
-- Gender
-- Phone
-- Location
-- Bio
-- Member since
+### 2.11 Consulting Analytics (`/admin/consulting/analytics`)
+- Summary cards:
+  - Total views.
+  - Total requests.
+  - Conversion rate.
+  - Unique view context.
+- Period selector:
+  - Last 7 days.
+  - Last 30 days.
+  - All time.
+- Trend charts scoped to selected period.
+- Service conversion table and top-services lists.
+- Auto-refresh (60s) and manual refresh button.
 
-## 8. Article Management (/admin/articles)
+## 3. Data Export and File Features
 
-### Capabilities
-- Create article with rich-text editor.
-- Edit existing article.
-- Publish article.
-- Unpublish article.
-- Delete article.
+### Exports
+- Survey response export to `.xlsx` from:
+  - Survey management page.
+  - Responses hub.
 
-### Editor features
-- Rich text formatting (headers, emphasis, lists, quotes, code blocks).
-- Links and image embedding.
-- Client-side image handling/compression before embed.
-- Content normalization for links.
-
-### Validation
-- Title length constraints.
-- Non-empty content checks.
-
-## 9. Media Management (/admin/media)
-
-### Capabilities
-- Create media posts.
-- Edit media posts.
-- Delete media posts.
-- Manage public media feed content through admin mode grid.
-
-## 10. Training Administration (/admin/training)
-
-### Capabilities
-- Create/edit/delete training categories.
-- Import YouTube playlist by URL into selected category.
-- View and delete imported playlists.
-- Open playlist items under selected playlist.
-- Create/edit/delete category notes.
-- Upload note documents and attach document URLs.
-
-### Navigation model in page
-- Breadcrumb flow from Categories to Notes or Videos.
-- Category-first management pattern.
-
-## 11. Consulting Management (/admin/consulting)
-
-### Service content CRUD
-- Create consulting service.
-- Edit consulting service.
-- Delete consulting service.
-- Toggle active/inactive state.
-
-### Fields supported in admin form
-- title
-- slug
-- short_description
-- hero_subtitle
-- hero_benefits (one item per line)
-- content (rich text)
-- deliverables (rich text)
-- target_audience (rich text)
-- is_active
-
-### Requests review
-- View consultation requests table.
-- Fields displayed:
-  - Service
-  - Requester
-  - Email
-  - Status
-  - Priority
-  - Assigned admin
-  - Submission time
-- Paginated request browsing.
-
-### Request detail and workflow actions
-- Open request detail modal from the requests table.
-- Review full request context:
-  - Message
-  - Attachment link (download/open)
-  - Service and requester metadata
-- Update internal workflow fields:
-  - status (new, in_progress, waiting_user, resolved, closed)
-  - priority (low, medium, high, urgent)
-  - assigned_to (admin user)
-  - notes (internal handling notes)
-- Save workflow updates directly from modal.
-
-### Email response support
-- Select from prebuilt reply templates.
-- Auto-fill template subject and body using request context.
-- Edit subject/body before sending.
-- Launch default email client via mailto action.
-- Copy email message body to clipboard.
-
-## 12. Consulting Analytics (/admin/consulting/analytics)
-
-### Summary cards
-- Total Views
-- Total Requests
-- Conversion Rate
-
-### Trend charts
-- Views over time (30 days)
-- Requests over time (30 days)
-
-### Service-level table
-- Service name
-- Views
-- Requests
-- Conversion %
-
-### Top service panels
-- Most viewed services
-- Most requested services
-
-## 13. Data Exports and Files
-
-### Excel exports available
-- Survey responses export from Manage Surveys.
-- Survey responses export from Responses hub.
-
-### File attachments managed in admin
+### Admin-managed uploaded files
 - Survey submission email attachments.
-- Consulting request file attachments (view links in request table).
-- Training note document uploads.
+- Consulting request attachments.
+- Training note document files.
 
-## 14. Operational Notes for Admins
+## 4. Implementation Steps (How To Build or Extend Admin Features)
 
-- Admin pages use asynchronous loading and show loading indicators for long operations.
-- Most destructive actions require confirmation dialogs.
-- Success and error notifications are surfaced inline in each page.
-- Role enforcement occurs server-side and client-side route protection is also enabled.
+Use this sequence when adding a new admin feature or extending an existing one.
 
-## 15. Feature Quick Checklist
+### Step 1: Database schema and migration
+1. Add migration SQL under `database/migrations/`.
+2. Use additive, backward-compatible schema changes when possible.
+3. Update initialization scripts if migration ordering is manually listed.
 
-- Dashboard charts: available
-- Survey CRUD + publish flow: available
-- Survey builder with advanced question types: available
-- Survey responses + analytics + export: available
-- User moderation (ban/unban/delete banned): available
-- Article authoring and publish control: available
-- Media content administration: available
-- Training categories/playlists/notes management: available
-- Consulting services CRUD + request workflow + templated email reply: available
-- Consulting analytics (views/requests/conversion): available
+### Step 2: Server validation rules
+1. Add or update request validators in `server/middleware/routeValidators.js`.
+2. Enforce type, enum, and required constraints at route level.
+3. Keep validation errors explicit and admin-friendly.
 
-For API-level details behind these features, see docs/API_DOCUMENTATION.md.
+### Step 3: Controller implementation
+1. Add controller handlers under `server/controllers/` for CRUD/query logic.
+2. Sanitize text/HTML inputs where rich content is accepted.
+3. Keep business logic in controllers, return consistent JSON response shapes.
+4. For analytics endpoints, include cache-control headers for freshness.
+
+### Step 4: Route wiring
+1. Register endpoints in `server/routes/*.js`.
+2. Protect admin endpoints with `authenticate` and `authorize`.
+3. Keep public and parameterized routes ordered correctly.
+
+### Step 5: Client service API layer
+1. Add client API methods in `client/src/services/*.js`.
+2. Keep method naming consistent with existing patterns.
+3. Pass query params (for pagination, filters, period selectors) through `params`.
+
+### Step 6: Admin page UI implementation
+1. Build page in `client/src/pages/`.
+2. Use shared components (`BackLink`, `LoadingSpinner`, chips/tables/cards).
+3. Provide loading, error, empty, and success states.
+4. Confirm destructive actions with explicit prompts.
+
+### Step 7: Route registration and navigation
+1. Add admin route to app router in `client/src/App.js`.
+2. Add a dashboard shortcut card/link where applicable.
+3. Ensure route is inside admin-only `ProtectedRoute`.
+
+### Step 8: Data accuracy and analytics checks
+1. Cross-check API aggregates against direct SQL counts.
+2. Verify period filters (7d/30d/all-time) and conversion math.
+3. Prefer source-of-truth tables for key metrics.
+
+### Step 9: Manual QA checklist
+1. Verify admin access control with admin and non-admin accounts.
+2. Verify CRUD lifecycle end-to-end.
+3. Verify search, pagination, export/download flows.
+4. Verify charts render with zero-data and non-zero-data sets.
+5. Verify validation errors and confirmation dialogs.
+
+### Step 10: Deployment checklist
+1. Deploy backend code changes.
+2. Deploy frontend build.
+3. Apply migrations in production if schema changed.
+4. Re-check critical admin flows after deployment.
+
+## 5. Module-Specific Build Recipes
+
+### 5.1 Add a new admin CRUD module
+1. Create migration(s) for new entity tables.
+2. Add controller CRUD functions.
+3. Add protected routes.
+4. Add client service methods.
+5. Create admin page with list + form + actions.
+6. Add admin route and dashboard shortcut.
+7. Add docs update in this file.
+
+### 5.2 Add a new admin analytics panel
+1. Define metric sources and SQL aggregates.
+2. Implement analytics endpoint(s) with optional period parameter.
+3. Return both totals and trend arrays in stable shape.
+4. Build page cards and charts in admin UI.
+5. Add refresh flow and stale-data safeguards.
+6. Validate each card against SQL before release.
+
+### 5.3 Add a new admin file upload workflow
+1. Configure multer storage and limits in route file.
+2. Validate MIME types and size constraints.
+3. Store file metadata/URL in DB entity records.
+4. Expose links safely in admin UI.
+5. Verify server static path and reverse proxy behavior.
+
+## 6. Current Status Summary
+
+- Admin core modules: implemented.
+- Consulting request assignment field: removed from workflow.
+- Consulting analytics period selector: implemented (7d, 30d, all-time).
+- Unified platform analytics page: currently disabled in app routing by design.
+
+For endpoint-level request and response examples, refer to `docs/API_DOCUMENTATION.md`.

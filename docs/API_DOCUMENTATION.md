@@ -498,10 +498,10 @@ Authorization: Bearer <admin_token>
 
 ## 5. Consulting Endpoints
 
-### Get Active Consulting Services
+### Public: Get Active Consulting Services
 **GET** `/consulting`
 
-**Response:**
+**Response (sample):**
 ```json
 {
   "services": [
@@ -510,6 +510,8 @@ Authorization: Bearer <admin_token>
       "title": "Protocol Development",
       "slug": "protocol-development",
       "short_description": "Design robust clinical and research protocols...",
+      "hero_subtitle": "Protocol design support for robust studies",
+      "hero_benefits": ["Tailored approach", "Clear deliverables"],
       "content": "<p>...</p>",
       "deliverables": "<ul><li>...</li></ul>",
       "target_audience": "<ul><li>...</li></ul>",
@@ -522,10 +524,10 @@ Authorization: Bearer <admin_token>
 
 ---
 
-### Get Consulting Service By Slug
+### Public: Get Consulting Service By Slug
 **GET** `/consulting/:slug`
 
-**Response:**
+**Response (sample):**
 ```json
 {
   "service": {
@@ -533,6 +535,8 @@ Authorization: Bearer <admin_token>
     "title": "Protocol Development",
     "slug": "protocol-development",
     "short_description": "Design robust clinical and research protocols...",
+    "hero_subtitle": "Protocol design support for robust studies",
+    "hero_benefits": ["Tailored approach", "Clear deliverables"],
     "content": "<p>Detailed service content...</p>",
     "deliverables": "<ul><li>...</li></ul>",
     "target_audience": "<ul><li>...</li></ul>",
@@ -543,10 +547,14 @@ Authorization: Bearer <admin_token>
 
 ---
 
-### Submit Consultation Request
+### Authenticated: Submit Consultation Request
 **POST** `/consulting/request`
 
-**Content-Type:** `multipart/form-data`
+**Headers:**
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
 
 **Form Fields:**
 - `service_id` (required)
@@ -555,7 +563,7 @@ Authorization: Bearer <admin_token>
 - `message` (required)
 - `file` (optional; pdf/doc/docx/xls/xlsx/csv/txt)
 
-**Response:**
+**Response (sample):**
 ```json
 {
   "message": "Consultation request submitted successfully",
@@ -574,7 +582,38 @@ Authorization: Bearer <admin_token>
 
 ---
 
-### Create Consulting Service (Admin Only)
+### Public: Track Consulting Event
+**POST** `/consulting/events`
+
+**Request Body (sample):**
+```json
+{
+  "service_id": 3,
+  "event_type": "view",
+  "session_id": "sess_1711111111111_abcdef1234",
+  "metadata": {
+    "source": "consulting-detail-page"
+  }
+}
+```
+
+**Notes:**
+- Supports optional authenticated user context.
+- Valid event types: `view`, `submit`.
+
+---
+
+### Admin: Get Consulting Services (including inactive)
+**GET** `/consulting/admin/services`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+---
+
+### Admin: Create Consulting Service
 **POST** `/consulting`
 
 **Headers:**
@@ -582,12 +621,14 @@ Authorization: Bearer <admin_token>
 Authorization: Bearer <admin_token>
 ```
 
-**Request Body:**
+**Request Body (sample):**
 ```json
 {
   "title": "Protocol Development",
   "slug": "protocol-development",
   "short_description": "Design robust protocols.",
+  "hero_subtitle": "Protocol support for complex studies",
+  "hero_benefits": ["Tailored strategy", "Clear outputs"],
   "content": "<p>Rich HTML content</p>",
   "deliverables": "<ul><li>Deliverable 1</li></ul>",
   "target_audience": "<ul><li>Audience 1</li></ul>",
@@ -597,7 +638,7 @@ Authorization: Bearer <admin_token>
 
 ---
 
-### Update Consulting Service (Admin Only)
+### Admin: Update Consulting Service
 **PUT** `/consulting/:id`
 
 **Headers:**
@@ -607,7 +648,7 @@ Authorization: Bearer <admin_token>
 
 ---
 
-### Delete Consulting Service (Admin Only)
+### Admin: Delete Consulting Service
 **DELETE** `/consulting/:id`
 
 **Headers:**
@@ -617,13 +658,88 @@ Authorization: Bearer <admin_token>
 
 ---
 
-### List Consultation Requests (Admin Only)
+### Admin: List Consultation Requests
 **GET** `/consulting/requests?page=1&limit=20`
 
 **Headers:**
 ```
 Authorization: Bearer <admin_token>
 ```
+
+**Request status values:**
+- `new`, `in_progress`, `waiting_user`, `resolved`, `closed`
+
+**Priority values:**
+- `low`, `medium`, `high`, `urgent`
+
+**Notes:**
+- Request assignment fields are removed from current workflow.
+
+---
+
+### Admin: Get Consultation Request By ID
+**GET** `/consulting/requests/:id`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+---
+
+### Admin: Update Consultation Request Workflow
+**PUT** `/consulting/requests/:id`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+**Request Body (sample):**
+```json
+{
+  "status": "in_progress",
+  "priority": "high",
+  "notes": "Initial review complete. Waiting for timeline clarification."
+}
+```
+
+---
+
+### Admin: Consulting Analytics Overview
+**GET** `/consulting/analytics/overview?period=30d`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+**Period options:**
+- `7d`
+- `30d`
+- `all`
+
+**Response highlights:**
+- `selected_period`
+- `period_metrics`
+- `last_7_days`
+- `last_30_days`
+- `daily_trend`
+- `service_metrics`
+
+---
+
+### Admin: Consulting Analytics By Service
+**GET** `/consulting/analytics/service/:id?days=30`
+
+**Headers:**
+```
+Authorization: Bearer <admin_token>
+```
+
+**Days options:**
+- `7`
+- `30`
 
 ---
 

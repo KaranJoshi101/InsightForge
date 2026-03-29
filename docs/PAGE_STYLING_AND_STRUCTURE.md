@@ -80,10 +80,12 @@
 | `/admin/training` | Protected Admin | `AdminTrainingPage` | Training categories/playlists/notes administration layout | `index.css` admin patterns + inline |
 | `/admin/consulting` | Protected Admin | `AdminConsultingPage` | Consulting services and request workflow management UI | `index.css` admin/consulting classes + inline |
 | `/admin/consulting/analytics` | Protected Admin | `AdminConsultingAnalyticsPage` | Consulting analytics dashboard with charts and metric blocks | `index.css` analytics/admin classes + inline |
-| `/admin/analytics` | Protected Admin | `AdminAnalyticsPage` | Unified cross-module analytics dashboard | `index.css` analytics/admin classes + inline |
 
 ### Catch-all route
 - `*` -> redirects to `/`
+
+### Disabled admin route note
+- Unified analytics route (`/admin/analytics`) is currently disabled in `client/src/App.js` and not active in runtime navigation.
 
 ## 4. Non-route Page Files (Still Part of Page Layer)
 

@@ -1,7 +1,7 @@
 # Survey App - Complete Project Documentation
 
-Version: 1.0
-Last Updated: 2026-03-29 (Consulting module UX/content upgrade)
+Version: 1.1
+Last Updated: 2026-03-29 (Admin docs + consulting analytics period updates)
 
 ## 1. Project Overview
 
@@ -89,6 +89,8 @@ survey-app/
 - Article management
 - Media management
 - Training management
+- Consulting management
+- Consulting analytics (period-aware)
 
 ## 5. Backend Modules
 
@@ -133,6 +135,8 @@ survey-app/
 - signup_otp_verifications (OTP registration flow)
 - Media and training-related tables introduced via migrations
 - consulting_services and consulting_requests
+- consulting_events (consulting engagement events)
+- platform_events (unified analytics event store; UI route currently disabled)
 
 ### Consulting Data Model (Current)
 - `consulting_services`
@@ -163,6 +167,10 @@ survey-app/
 - 14_drop_unused_fields.sql
 - 15_add_consulting_services.sql
 - 16_add_consulting_hero_fields.sql
+- 17_add_consulting_events.sql
+- 18_add_consulting_request_workflow_fields.sql
+- 19_create_platform_events.sql
+- 20_remove_consulting_request_assignment.sql
 
 ## 7. Local Development Setup
 
@@ -237,6 +245,7 @@ Includes checks for health, login, and build artifacts.
 - start/start:server: run backend production mode
 - pm2:start | pm2:restart | pm2:stop
 - db:init: initialize DB
+- db:sync:prod: backup production, sync local DB to production, verify core table counts
 - seed:consulting: seed consulting requests + consulting analytics events
 - verify:consulting-seed: verify seeded consulting request/event counts
 - install-all/postinstall: install dependencies for root/server/client
@@ -293,9 +302,13 @@ Additional modules:
 
 Consulting API capabilities now include:
 - Public services list and detail retrieval.
-- Consultation request submission with optional file upload.
+- Consultation request submission with optional file upload (authenticated users).
+- Event tracking endpoint for consulting views/submits.
 - Admin service CRUD including hero fields (`hero_subtitle`, `hero_benefits`).
 - Admin consultation request listing with pagination.
+- Admin consultation request workflow updates (`status`, `priority`, `notes`).
+- Admin consulting analytics overview with period selector (`7d`, `30d`, `all`).
+- Admin service analytics endpoint with `days=7|30` support.
 
 For full request/response payloads, see API documentation map below.
 

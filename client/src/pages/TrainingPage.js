@@ -157,10 +157,10 @@ const TrainingPage = () => {
     const backTo = isAuthenticated ? '/dashboard' : '/';
 
     return (
-        <div className="container mt-4 training-page-wrap">
+        <div className="container mt-4 training-page-wrap space-y-6">
             {!selectedCategory && !selectedSection && !selectedPlaylist && <BackLink to={backTo} label="Go Back" />}
 
-            <header className="training-header">
+            <header className="training-header pb-2 transition-all duration-200 ease-in-out">
                 <h1>Training Platform</h1>
                 <p>Choose a category, then explore notes or videos.</p>
             </header>
@@ -183,7 +183,7 @@ const TrainingPage = () => {
             ) : (
                 <>
                     {!selectedCategory && !selectedPlaylist && (
-                        <section>
+                        <section className="pt-1">
                             {categories.length === 0 ? (
                                 <div className="player-empty">No training categories available yet.</div>
                             ) : (
@@ -192,7 +192,7 @@ const TrainingPage = () => {
                                     {categories.map((category) => (
                                         <article
                                             key={category.id}
-                                            className="training-catalog-card training-catalog-card--category"
+                                            className="training-catalog-card training-catalog-card--category group cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.03)] focus-within:ring-2 focus-within:ring-[rgba(0,53,148,0.35)]"
                                             onClick={() => setSelectedCategory(category)}
                                             role="button"
                                             tabIndex={0}
@@ -207,7 +207,7 @@ const TrainingPage = () => {
                                                 <h3>{category.name}</h3>
                                                 <p>{category.description || 'Organized learning resources and guided material.'}</p>
                                             </div>
-                                            <div className="training-catalog-card-arrow" aria-hidden="true">&gt;</div>
+                                            <div className="training-catalog-card-arrow transform transition-transform duration-200 ease-in-out group-hover:translate-x-1" aria-hidden="true">&gt;</div>
                                         </article>
                                     ))}
                                     </div>
@@ -217,7 +217,7 @@ const TrainingPage = () => {
                     )}
 
                     {selectedCategory && !selectedPlaylist && (
-                        <section>
+                        <section className="pt-1">
                             <div className="playlist-detail-head" style={{ marginBottom: '16px' }}>
                                 <div>
                                     <h2 style={{ marginBottom: '6px' }}>{selectedCategory.name}</h2>
@@ -225,7 +225,7 @@ const TrainingPage = () => {
                                         <p className="playlist-detail-description">{selectedCategory.description}</p>
                                     )}
                                 </div>
-                                <button type="button" className="btn btn-secondary" onClick={resetToCategories}>
+                                <button type="button" className="btn btn-secondary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={resetToCategories}>
                                     ← Back to Categories
                                 </button>
                             </div>
@@ -233,7 +233,7 @@ const TrainingPage = () => {
                             <div className="training-catalog-panel">
                                 <div className="training-catalog-grid training-catalog-grid--compact">
                                 <article
-                                    className={`training-catalog-card ${selectedSection === 'notes' ? 'training-catalog-card--active' : ''}`}
+                                    className={`training-catalog-card group cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.03)] focus-within:ring-2 focus-within:ring-[rgba(0,53,148,0.35)] ${selectedSection === 'notes' ? 'training-catalog-card--active' : ''}`}
                                     onClick={() => setSelectedSection('notes')}
                                     role="button"
                                     tabIndex={0}
@@ -248,11 +248,11 @@ const TrainingPage = () => {
                                         <h3>Notes</h3>
                                         <p>{(selectedCategory.notes || []).length} note{(selectedCategory.notes || []).length === 1 ? '' : 's'}</p>
                                     </div>
-                                    <div className="training-catalog-card-arrow" aria-hidden="true">&gt;</div>
+                                    <div className="training-catalog-card-arrow transform transition-transform duration-200 ease-in-out group-hover:translate-x-1" aria-hidden="true">&gt;</div>
                                 </article>
 
                                 <article
-                                    className={`training-catalog-card ${selectedSection === 'videos' ? 'training-catalog-card--active' : ''}`}
+                                    className={`training-catalog-card group cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.03)] focus-within:ring-2 focus-within:ring-[rgba(0,53,148,0.35)] ${selectedSection === 'videos' ? 'training-catalog-card--active' : ''}`}
                                     onClick={() => setSelectedSection('videos')}
                                     role="button"
                                     tabIndex={0}
@@ -267,7 +267,7 @@ const TrainingPage = () => {
                                         <h3>Videos</h3>
                                         <p>{(selectedCategory.playlists || []).length} playlist{(selectedCategory.playlists || []).length === 1 ? '' : 's'}</p>
                                     </div>
-                                    <div className="training-catalog-card-arrow" aria-hidden="true">&gt;</div>
+                                    <div className="training-catalog-card-arrow transform transition-transform duration-200 ease-in-out group-hover:translate-x-1" aria-hidden="true">&gt;</div>
                                 </article>
                                 </div>
                             </div>
@@ -275,7 +275,7 @@ const TrainingPage = () => {
                     )}
 
                     {selectedCategory && selectedSection === 'notes' && !selectedPlaylist && (
-                        <section style={{ marginTop: '4px' }}>
+                        <section style={{ marginTop: '4px' }} className="pt-1">
                             <div className="playlist-detail-head" style={{ marginBottom: '14px' }}>
                                 <div>
                                     <h2 style={{ marginBottom: '6px' }}>{selectedCategory.name} - Notes</h2>
@@ -285,7 +285,7 @@ const TrainingPage = () => {
                             {Array.isArray(selectedCategory.notes) && selectedCategory.notes.length > 0 ? (
                                 <div className="training-file-grid">
                                     {selectedCategory.notes.map((note) => (
-                                        <article key={note.id} className="training-file-card">
+                                        <article key={note.id} className="training-file-card transition-all duration-200 ease-in-out hover:shadow-md hover:bg-[rgba(0,53,148,0.02)]">
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: note.content ? '12px' : '8px' }}>
                                                 <strong style={{ fontSize: '15px', color: '#003594', wordBreak: 'break-word', flex: 1 }}>{note.title || '(Untitled Note)'}</strong>
                                                 {note.document_url && (
@@ -293,6 +293,7 @@ const TrainingPage = () => {
                                                         href={note.document_url}
                                                         target="_blank"
                                                         rel="noreferrer"
+                                                        className="transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                                         style={{
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
@@ -323,7 +324,7 @@ const TrainingPage = () => {
                     )}
 
                     {selectedCategory && selectedSection === 'videos' && !selectedPlaylist && (
-                        <section style={{ marginTop: '4px' }}>
+                        <section style={{ marginTop: '4px' }} className="pt-1">
                             <div className="playlist-detail-head" style={{ marginBottom: '14px' }}>
                                 <div>
                                     <h2 style={{ marginBottom: '6px' }}>{selectedCategory.name} - Videos</h2>
@@ -337,7 +338,7 @@ const TrainingPage = () => {
                                         {(selectedCategory.playlists || []).map((playlist) => (
                                             <article
                                                 key={playlist.id}
-                                                className="playlist-card"
+                                                className="playlist-card group cursor-pointer transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.03)] focus-within:ring-2 focus-within:ring-[rgba(0,53,148,0.35)]"
                                                 onClick={() => openPlaylist(playlist)}
                                                 role="button"
                                                 tabIndex={0}
@@ -354,7 +355,7 @@ const TrainingPage = () => {
                                                         <div className="playlist-thumb fallback">No Preview</div>
                                                     )}
                                                     <div className="thumb-overlay">
-                                                        <span className="play-badge">▶</span>
+                                                        <span className="play-badge transform transition-transform duration-200 ease-in-out group-hover:translate-x-1">▶</span>
                                                     </div>
                                                 </div>
                                                 <div className="playlist-body">
@@ -373,7 +374,7 @@ const TrainingPage = () => {
                     )}
 
                     {selectedPlaylist && (
-                        <section className="playlist-detail">
+                        <section className="playlist-detail pt-1">
                             <div className="playlist-detail-head">
                                 <div>
                                     <h2>{selectedPlaylist.name}</h2>
@@ -381,7 +382,7 @@ const TrainingPage = () => {
                                         <p className="playlist-detail-description">{selectedPlaylist.description}</p>
                                     )}
                                 </div>
-                                <button type="button" className="btn btn-secondary" onClick={resetToCategoryVideos}>
+                                <button type="button" className="btn btn-secondary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={resetToCategoryVideos}>
                                     ← Back to Playlists
                                 </button>
                             </div>
@@ -414,7 +415,7 @@ const TrainingPage = () => {
                                             <button
                                                 type="button"
                                                 key={video.id || video.youtube_id}
-                                                className={`video-item ${(selectedVideo?.id || selectedVideo?.youtube_id) === (video.id || video.youtube_id) ? 'active' : ''}`}
+                                                className={`video-item transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.03)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95 ${(selectedVideo?.id || selectedVideo?.youtube_id) === (video.id || video.youtube_id) ? 'active' : ''}`}
                                                 onClick={() => setSelectedVideo(video)}
                                             >
                                                 <img

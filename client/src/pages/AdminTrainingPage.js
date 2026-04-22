@@ -410,10 +410,10 @@ const AdminTrainingPage = () => {
     }
 
     return (
-        <div className="container mt-4">
+        <div className="container mt-4 space-y-5">
             <BackLink to="/admin" label="Back to Admin" />
 
-            <div style={{ marginTop: '24px' }}>
+            <div style={{ marginTop: '24px' }} className="space-y-4">
                 <h2>Training Administration</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>
                     Create categories and manage organized playlists and notes for each category.
@@ -445,7 +445,7 @@ const AdminTrainingPage = () => {
                     </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '16px', marginBottom: '20px' }} className="transition-all duration-200 ease-in-out">
                     <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff' }}>
                         <h4 style={{ marginTop: 0 }}>{editingCategoryId ? 'Edit Category' : 'Create Category'}</h4>
                         <form onSubmit={handleSubmitCategory}>
@@ -470,14 +470,14 @@ const AdminTrainingPage = () => {
                                 />
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <button type="submit" disabled={saving} className="btn btn-primary">
+                                <button type="submit" disabled={saving} className="btn btn-primary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95">
                                     {saving ? 'Saving...' : editingCategoryId ? 'Update Category' : 'Create Category'}
                                 </button>
                                 {editingCategoryId && (
                                     <button
                                         type="button"
                                         disabled={saving}
-                                        className="btn btn-secondary"
+                                        className="btn btn-secondary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                         onClick={() => {
                                             setEditingCategoryId(null);
                                             setCategoryForm(initialCategoryForm);
@@ -503,11 +503,13 @@ const AdminTrainingPage = () => {
                                     return (
                                         <div
                                             key={category.id}
+                                            className="transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.03)]"
                                             style={{ border: active ? '2px solid #003594' : '1px solid #dee2e6', borderRadius: '6px', padding: '10px', backgroundColor: active ? '#f0f5ff' : '#fff' }}
                                         >
                                             <button
                                                 type="button"
                                                 onClick={() => setSelectedCategoryId(category.id)}
+                                                className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] rounded"
                                                 style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 0 }}
                                             >
                                                 <div style={{ fontWeight: 700, color: '#003594' }}>{category.name}</div>
@@ -516,7 +518,7 @@ const AdminTrainingPage = () => {
                                             <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                 <button
                                                     type="button"
-                                                    className="admin-category-action-btn edit"
+                                                    className="admin-category-action-btn edit transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                                     onClick={() => handleEditCategory(category)}
                                                     disabled={saving}
                                                 >
@@ -524,7 +526,7 @@ const AdminTrainingPage = () => {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    className="admin-category-action-btn delete"
+                                                    className="admin-category-action-btn delete transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                                     onClick={() => handleDeleteCategory(category.id)}
                                                     disabled={saving}
                                                 >
@@ -533,7 +535,7 @@ const AdminTrainingPage = () => {
                                                 {category.is_active ? (
                                                     <button
                                                         type="button"
-                                                        className="admin-category-action-btn unpublish"
+                                                        className="admin-category-action-btn unpublish transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                                         style={{ marginLeft: 8, backgroundColor: saving ? '#FFE082' : undefined }}
                                                         disabled={saving}
                                                         onClick={async () => {
@@ -555,7 +557,7 @@ const AdminTrainingPage = () => {
                                                 ) : (
                                                     <button
                                                         type="button"
-                                                        className="admin-category-action-btn publish"
+                                                        className="admin-category-action-btn publish transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                                         style={{ marginLeft: 8, backgroundColor: saving ? '#66bb6a' : undefined }}
                                                         disabled={saving}
                                                         onClick={async () => {
@@ -584,7 +586,7 @@ const AdminTrainingPage = () => {
                     </div>
                 </div>
 
-                <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff', marginBottom: '20px' }}>
+                <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff', marginBottom: '20px' }} className="transition-all duration-200 ease-in-out">
                     <h4 style={{ marginTop: 0 }}>Import Playlist into Category</h4>
                     <p style={{ color: '#666' }}>
                         Selected Category: <strong>{selectedCategory?.name || 'None'}</strong>
@@ -594,7 +596,7 @@ const AdminTrainingPage = () => {
                             <div className="responsive-two-col-grid" style={{ gap: '12px', marginBottom: '12px' }}>
                                 <button
                                     type="button"
-                                    className={`btn ${selectedSection === 'notes' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    className={`btn transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95 ${selectedSection === 'notes' ? 'btn-primary' : 'btn-outline-primary'}`}
                                     onClick={() => {
                                         setSelectedSection('notes');
                                         setSelectedPlaylist(null);
@@ -605,7 +607,7 @@ const AdminTrainingPage = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    className={`btn ${selectedSection === 'videos' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    className={`btn transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95 ${selectedSection === 'videos' ? 'btn-primary' : 'btn-outline-primary'}`}
                                     onClick={() => {
                                         setSelectedSection('videos');
                                         setSelectedPlaylist(null);
@@ -626,7 +628,7 @@ const AdminTrainingPage = () => {
                                         disabled={saving}
                                         style={{ width: '100%', padding: '10px', border: '1px solid #ced4da', borderRadius: '4px', marginBottom: '10px', fontFamily: 'monospace' }}
                                     />
-                                    <button type="submit" disabled={saving || !selectedCategoryId} className="btn btn-primary">
+                                    <button type="submit" disabled={saving || !selectedCategoryId} className="btn btn-primary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95">
                                         {saving ? 'Importing...' : 'Import Playlist'}
                                     </button>
                                 </form>
@@ -638,13 +640,13 @@ const AdminTrainingPage = () => {
                 </div>
 
                 {selectedSection === 'notes' && (
-                <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff', marginBottom: '20px' }}>
+                <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff', marginBottom: '20px' }} className="transition-all duration-200 ease-in-out">
                     <h4 style={{ marginTop: 0 }}>Category Notes and Documents</h4>
                     <p style={{ color: '#666' }}>
                         Add reading notes or document links under <strong>{selectedCategory?.name || 'a category'}</strong>.
                     </p>
                     <div style={{ marginBottom: '12px' }}>
-                        <button type="button" className="btn btn-secondary" onClick={resetToCategorySections}>← Back</button>
+                        <button type="button" className="btn btn-secondary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={resetToCategorySections}>← Back</button>
                     </div>
 
                     <form onSubmit={handleSubmitNote} style={{ marginBottom: '14px' }}>
@@ -686,13 +688,13 @@ const AdminTrainingPage = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="submit" disabled={saving || !selectedCategoryId} className="btn btn-primary">
+                            <button type="submit" disabled={saving || !selectedCategoryId} className="btn btn-primary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95">
                                 {saving ? 'Saving...' : editingNoteId ? 'Update Note' : 'Create Note'}
                             </button>
                             {editingNoteId && (
                                 <button
                                     type="button"
-                                    className="btn btn-secondary"
+                                    className="btn btn-secondary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                     onClick={() => {
                                         setEditingNoteId(null);
                                         setNoteForm(initialNoteForm);
@@ -710,7 +712,7 @@ const AdminTrainingPage = () => {
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', width: '100%' }}>
                             {notes.map((note) => (
-                                <div key={note.id} style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '14px 16px', backgroundColor: '#ffffff' }}>
+                                <div key={note.id} className="transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.02)]" style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '14px 16px', backgroundColor: '#ffffff' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '10px' }}>
                                         <strong style={{ fontSize: '16px', fontWeight: '600', color: '#003594', wordBreak: 'break-word', flex: 1 }}>{note.title || '(Untitled Note)'}</strong>
                                         {note.document_url && (
@@ -718,6 +720,7 @@ const AdminTrainingPage = () => {
                                                 href={note.document_url}
                                                 target="_blank"
                                                 rel="noreferrer"
+                                                className="transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95"
                                                 style={{
                                                     display: 'inline-flex',
                                                     alignItems: 'center',
@@ -740,8 +743,8 @@ const AdminTrainingPage = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                        <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => handleEditNote(note)} disabled={saving}>Edit</button>
-                                        <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteNote(note.id)} disabled={saving}>Delete</button>
+                                        <button type="button" className="btn btn-sm btn-outline-primary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={() => handleEditNote(note)} disabled={saving}>Edit</button>
+                                        <button type="button" className="btn btn-sm btn-outline-danger transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={() => handleDeleteNote(note.id)} disabled={saving}>Delete</button>
                                     </div>
                                 </div>
                             ))}
@@ -751,12 +754,12 @@ const AdminTrainingPage = () => {
                 )}
 
                 {selectedSection === 'videos' && (
-                <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff' }}>
+                <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '16px', backgroundColor: '#fff' }} className="transition-all duration-200 ease-in-out">
                     <h4 style={{ marginTop: 0 }}>
                         Playlists in {selectedCategory?.name || 'Selected Category'} ({filteredPlaylists.length})
                     </h4>
                     <div style={{ marginBottom: '12px' }}>
-                        <button type="button" className="btn btn-secondary" onClick={resetToCategorySections}>← Back</button>
+                        <button type="button" className="btn btn-secondary transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={resetToCategorySections}>← Back</button>
                     </div>
 
                     {filteredPlaylists.length === 0 ? (
@@ -764,10 +767,11 @@ const AdminTrainingPage = () => {
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
                             {filteredPlaylists.map((playlist) => (
-                                <div key={playlist.id} style={{ border: selectedPlaylist?.id === playlist.id ? '2px solid #003594' : '1px solid #dee2e6', borderRadius: '8px', padding: '12px' }}>
+                                <div key={playlist.id} className="transition-all duration-200 ease-in-out hover:shadow-md hover:scale-[1.01] hover:bg-[rgba(0,53,148,0.02)]" style={{ border: selectedPlaylist?.id === playlist.id ? '2px solid #003594' : '1px solid #dee2e6', borderRadius: '8px', padding: '12px' }}>
                                     <button
                                         type="button"
                                         onClick={() => handleSelectPlaylist(playlist)}
+                                        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] rounded"
                                         style={{ background: 'none', border: 'none', textAlign: 'left', width: '100%', cursor: 'pointer', padding: 0 }}
                                     >
                                         <h5 style={{ margin: '0 0 8px 0', color: '#003594' }}>{playlist.name}</h5>
@@ -776,7 +780,7 @@ const AdminTrainingPage = () => {
                                         </p>
                                     </button>
                                     <div style={{ marginTop: '10px' }}>
-                                        <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => handleDeletePlaylist(playlist.id)} disabled={saving}>
+                                        <button type="button" className="btn btn-sm btn-outline-danger transition-all duration-200 ease-in-out hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(0,53,148,0.35)] active:scale-95" onClick={() => handleDeletePlaylist(playlist.id)} disabled={saving}>
                                             Delete Playlist
                                         </button>
                                     </div>

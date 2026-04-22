@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     FaArrowRight,
-    FaChartLine,
     FaCheckCircle,
     FaGlobe,
     FaIdBadge,
@@ -27,50 +26,6 @@ const LandingPage = () => {
             el.scrollIntoView({ behavior: 'smooth' });
         }
     };
-
-    // Sample data — replace with real admin / research data
-    const researchAreas = [
-        {
-            icon: FaChartLine,
-            title: 'Clinical Trials & Biostatistical Methods',
-            description: 'Expert analysis of clinical trial data and development of robust statistical methods for biomedical research. Specialization includes multistate modeling, survival analysis, longitudinal study design, and pharmaceutical research across Phase I-III trials.',
-        },
-        {
-            icon: FaVial,
-            title: 'Chronic Wounds, Diabetes & Medical Conditions',
-            description: 'Research on complex health conditions including diabetic foot ulcers, chronic wounds, dental health studies, cancer, Parkinson\'s disease, and schizophrenia. Focus on translating clinical observations into statistical insights and evidence-based treatment strategies.',
-        },
-        {
-            icon: FaLaptopCode,
-            title: 'Applied Statistics & Machine Learning Analytics',
-            description: 'Advanced statistical programming in R, SAS, SPSS-AMOS, STATA, and Python. Applications include omics analysis (metabolomics, genomics), machine learning for prediction models, EHR/survey-based research, and causal inference methodologies.',
-        },
-        {
-            icon: FaGlobe,
-            title: 'Health Economics & Public Health Policy',
-            description: 'Econometric analysis of healthcare systems, out-of-pocket expenditure studies, cost-effectiveness analysis, and policy evaluation. Focus on health disparities, community health interventions, and evidence-based public health decision making in India and globally.',
-        },
-        {
-            icon: FaVial,
-            title: 'Omics & Metabolomics Research',
-            description: 'Specialization in lipid and non-lipid metabolomic profiling, microarray analysis, and genomic data interpretation. Applications include wound fluid metabolomics for tissue healing mechanisms and biomarker discovery in chronic disease.',
-        },
-        {
-            icon: FaGlobe,
-            title: 'Infectious Disease & Epidemiology',
-            description: 'Phylogenetic and Bayesian analysis of viral evolution including Dengue and Zika viruses. Statistical modeling of disease progression dynamics and transmission patterns with focus on public health surveillance and outbreak investigation in India.',
-        },
-        {
-            icon: FaChartLine,
-            title: 'Registry Data & Real-World Evidence',
-            description: 'Analysis of large-scale patient registries and electronic health records (EHR) for generating real-world evidence. Expertise in database management, data validation, and longitudinal outcome assessment from complex clinical datasets.',
-        },
-        {
-            icon: FaLaptopCode,
-            title: 'Statistical Software & Data Management',
-            description: 'Proficiency in statistical software ecosystems (R, SAS, STATA, SPSS-AMOS, Python) and survey platforms (Qualtrics, RedCap, OnCore). Data dictionary development, questionnaire design, randomization, and sample size calculations for research protocols.',
-        },
-    ];
 
     const publications = [
         {
@@ -200,9 +155,9 @@ const LandingPage = () => {
                         <button
                             type="button"
                             className="acad-btn acad-btn-gold"
-                            onClick={() => scrollToSection('research')}
+                            onClick={() => scrollToSection('publications')}
                         >
-                            View Research
+                            View Publications
                         </button>
                         <button
                             type="button"
@@ -267,27 +222,6 @@ const LandingPage = () => {
                                 </li>
                             </ul>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ===== RESEARCH / WORK ===== */}
-            <section className="acad-section acad-section-grey" id="research">
-                <div className="acad-container">
-                    <div className="acad-section-header">
-                        <h2>Research &amp; Work</h2>
-                        <p>
-                            Biostatistics and quantitative research across clinical trials, health economics, epidemiology, and applied data analytics leveraging advanced statistical methods and computational tools.
-                        </p>
-                    </div>
-                    <div className="acad-cards-grid">
-                        {researchAreas.map((area, i) => (
-                            <div className="acad-card" key={i}>
-                                <div className="acad-card-icon"><area.icon aria-hidden="true" /></div>
-                                <h3>{area.title}</h3>
-                                <p>{area.description}</p>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </section>
@@ -494,12 +428,11 @@ const LandingPage = () => {
                             <ul className="acad-footer-links">
                                 <li><button type="button" onClick={() => scrollToSection('hero')}>Home</button></li>
                                 <li><button type="button" onClick={() => scrollToSection('about')}>About</button></li>
-                                <li><button type="button" onClick={() => scrollToSection('research')}>Research</button></li>
                                 <li><button type="button" onClick={() => scrollToSection('publications')}>Publications</button></li>
                                 <li><Link to="/training">Training Videos</Link></li>
                                 <li><Link to="/media">Media &amp; Feedback</Link></li>
                                 <li><Link to="/articles">Read Articles</Link></li>
-                                <li><button type="button" onClick={() => scrollToSection('media-feed')}>Media Feed</button></li>
+                                <li><Link to="/media">Media Feed</Link></li>
                             </ul>
                         </div>
                         <div>

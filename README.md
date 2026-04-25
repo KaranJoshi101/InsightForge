@@ -214,7 +214,3 @@ If `origin` already exists, update it:
 git remote set-url origin https://github.com/<your-username>/<your-repo>.git
 git push -u origin main
 ```
-
-## License
-
-MIT

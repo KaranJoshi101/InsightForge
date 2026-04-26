@@ -1,7 +1,7 @@
 -- Sample Media Posts for Testing
 -- This data populates the media_posts table with realistic sample posts
 
-INSERT INTO media_posts (title, description, image_url, size, source, created_at)
+INSERT IGNORE INTO media_posts (title, description, image_url, size, source, created_at)
 VALUES
     (
         'Multistate Model of Chronic Wounds Research',
@@ -9,7 +9,7 @@ VALUES
         'https://via.placeholder.com/600x400?text=Research+Presentation',
         'medium',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '5 days'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 DAY)
     ),
     (
         'Health Economics Panel Discussion',
@@ -17,7 +17,7 @@ VALUES
         'https://via.placeholder.com/400x400?text=Conference+Panel',
         'small',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '4 days'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 4 DAY)
     ),
     (
         'International Collaboration Summit',
@@ -25,7 +25,7 @@ VALUES
         'https://via.placeholder.com/800x600?text=Global+Collaboration',
         'large',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '3 days'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 DAY)
     ),
     (
         'Data Science for Public Health',
@@ -33,7 +33,7 @@ VALUES
         'https://via.placeholder.com/600x500?text=Workshop',
         'medium',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '2 days'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY)
     ),
     (
         'Urban Green Space Assessment Project',
@@ -41,7 +41,7 @@ VALUES
         'https://via.placeholder.com/500x500?text=GIS+Study',
         'small',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '1 day'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)
     ),
     (
         'Epidemiological Modeling in Practice',
@@ -49,7 +49,7 @@ VALUES
         'https://via.placeholder.com/700x400?text=Epidemiology+Model',
         'medium',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '12 hours'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 12 HOUR)
     ),
     (
         'Journal Publication Launch',
@@ -57,7 +57,7 @@ VALUES
         'https://via.placeholder.com/400x600?text=Publication',
         'small',
         'manual',
-        CURRENT_TIMESTAMP - INTERVAL '6 hours'
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 6 HOUR)
     ),
     (
         'Research Methodology Masterclass',
@@ -67,4 +67,4 @@ VALUES
         'manual',
         CURRENT_TIMESTAMP
     )
-ON CONFLICT (external_id) DO NOTHING;
+;

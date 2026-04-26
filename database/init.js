@@ -1,16 +1,44 @@
 // Database initialization script
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+const baseConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '3306', 10),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: 'postgres', // Connect to default database to create new one
-});
+};
+
+const executeSqlSafely = async (conn, sqlScript) => {
+    const statements = sqlScript
+        .split(/;\s*(?:\r?\n|$)/)
+        .map((stmt) => stmt.trim())
+        .filter(Boolean);
+
+    for (const statement of statements) {
+        try {
+            await conn.query(statement);
+        } catch (err) {
+            const duplicateIndexError = err?.code === 'ER_DUP_KEYNAME' || /Duplicate key name/i.test(err?.message || '');
+            if (duplicateIndexError) {
+                continue;
+            }
+
+            throw err;
+        }
+    }
+};
+
+const normalizeSeedSqlForMySql = (sqlScript) => {
+    return String(sqlScript || '')
+        .replace(/\bINSERT\s+INTO\b/gi, 'INSERT IGNORE INTO')
+        .replace(/CURRENT_TIMESTAMP\s*-\s*INTERVAL\s*'([0-9]+)\s+days'/gi, 'DATE_SUB(CURRENT_TIMESTAMP, INTERVAL $1 DAY)')
+        .replace(/CURRENT_TIMESTAMP\s*-\s*INTERVAL\s*'([0-9]+)\s+hours'/gi, 'DATE_SUB(CURRENT_TIMESTAMP, INTERVAL $1 HOUR)')
+        .replace(/CURRENT_TIMESTAMP\s*-\s*INTERVAL\s*'([0-9]+)\s+minutes'/gi, 'DATE_SUB(CURRENT_TIMESTAMP, INTERVAL $1 MINUTE)')
+        .replace(/\n?\s*ON\s+CONFLICT\s*(?:\([^)]+\))?\s+DO\s+NOTHING;?/gi, ';');
+};
 
 const initDatabase = async () => {
     try {
@@ -18,93 +46,62 @@ const initDatabase = async () => {
 
         // Step 1: Create database
         console.log('📦 Creating database...');
-        const dbName = process.env.DB_NAME;
+        const dbName = process.env.DB_NAME || 'survey_app';
+
+        const adminConn = await mysql.createConnection(baseConfig);
 
         try {
-            await pool.query(`CREATE DATABASE ${dbName}`);
+            await adminConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
             console.log(`✅ Database '${dbName}' created successfully\n`);
         } catch (err) {
-            if (err.message.includes('already exists')) {
-                console.log(`⚠️  Database '${dbName}' already exists\n`);
-            } else {
-                throw err;
-            }
+            throw err;
         }
 
-        // Close connection to postgres database
-        await pool.end();
+        await adminConn.end();
 
         // Step 2: Connect to the new database and run schema
-        const newPool = new Pool({
-            host: process.env.DB_HOST,
-            port: process.env.DB_PORT,
-            database: process.env.DB_NAME,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
+        const conn = await mysql.createConnection({
+            ...baseConfig,
+            database: dbName,
         });
 
-        console.log('📋 Running database migrations...');
-        
-        // Run all migrations in order
-        const migrations = [
-            '01_initial_schema.sql',
-            '02_add_is_banned.sql',
-            '03_add_profile_fields.sql',
-            '04_add_question_type_filters.sql',
-            '05_add_media_posts.sql',
-            '06_add_media_details_survey.sql',
-            '07_refactor_media_to_use_article_id.sql',
-            '08_create_training_videos.sql',
-            '09_create_training_playlists.sql',
-            '10_add_youtube_playlist_url.sql',
-            '11_add_survey_submission_email_fields.sql',
-            '12_add_signup_otp_verifications.sql',
-            '13_add_training_categories_and_notes.sql',
-            '14_drop_unused_fields.sql',
-            '15_add_consulting_services.sql',
-            '16_add_consulting_hero_fields.sql',
-            '17_add_consulting_events.sql',
-            '18_add_consulting_request_workflow_fields.sql',
-            '19_create_platform_events.sql',
-            '20_remove_consulting_request_assignment.sql',
-            '21_add_media_status.sql',
-            '22_sync_feedback_talk_publish_state.sql'
-        ];
-
-        for (const migration of migrations) {
-            try {
-                console.log(`  ➜ Running ${migration}...`);
-                const schema = fs.readFileSync(
-                    path.join(__dirname, './migrations', migration),
-                    'utf8'
-                );
-                await newPool.query(schema);
-                console.log(`  ✓ ${migration} completed`);
-            } catch (err) {
-                console.log(`  ⚠️  ${migration} - ${err.message}`);
-            }
-        }
-        console.log('✅ Migrations completed\n');
+        console.log('📋 Running MySQL schema...');
+        const schemaSql = fs.readFileSync(
+            path.join(__dirname, './mysql/schema.sql'),
+            'utf8'
+        );
+        await executeSqlSafely(conn, schemaSql);
+        console.log('✅ Schema applied\n');
 
         // Step 3: Seed data
         try {
             console.log('🌱 Inserting seed data...');
-            const seedData = fs.readFileSync(
-                path.join(__dirname, './seeds/seed_data.sql'),
-                'utf8'
-            );
+            const mysqlSeedPath = path.join(__dirname, './seeds/seed_data.mysql.sql');
+            const defaultSeedPath = path.join(__dirname, './seeds/seed_data.sql');
+            const seedPath = fs.existsSync(mysqlSeedPath) ? mysqlSeedPath : defaultSeedPath;
 
-            await newPool.query(seedData);
+            if (!fs.existsSync(seedPath)) {
+                throw new Error('No seed file found');
+            }
+
+            const seedData = normalizeSeedSqlForMySql(fs.readFileSync(seedPath, 'utf8'));
+            await executeSqlSafely(conn, seedData);
+
+            const mediaSeedPath = path.join(__dirname, './seeds/seed_media_posts.sql');
+            if (fs.existsSync(mediaSeedPath)) {
+                const mediaSeed = normalizeSeedSqlForMySql(fs.readFileSync(mediaSeedPath, 'utf8'));
+                await executeSqlSafely(conn, mediaSeed);
+            }
             console.log('✅ Seed data inserted successfully\n');
         } catch (err) {
             console.log(`⚠️  Seed data error: ${err.message}\n`);
         }
 
         console.log('🎉 Database initialization completed successfully!');
-        console.log(`✨ Database: ${process.env.DB_NAME}`);
+        console.log(`✨ Database: ${dbName}`);
         console.log(`✨ Host: ${process.env.DB_HOST}:${process.env.DB_PORT}\n`);
 
-        await newPool.end();
+        await conn.end();
     } catch (err) {
         console.error('❌ Error initializing database:', err.message);
         process.exit(1);

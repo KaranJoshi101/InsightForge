@@ -122,6 +122,25 @@ const surveyWriteValidation = [
         .isString()
         .isLength({ max: 2000 })
         .withMessage('attachment url must be at most 2000 characters'),
+    body('allow_multiple_submissions')
+        .optional()
+        .isBoolean()
+        .withMessage('allow_multiple_submissions must be a boolean')
+        .toBoolean(),
+    body('is_anonymous')
+        .optional()
+        .isBoolean()
+        .withMessage('is_anonymous must be a boolean')
+        .toBoolean(),
+    body('collect_email')
+        .optional()
+        .isBoolean()
+        .withMessage('collect_email must be a boolean')
+        .toBoolean(),
+    body('expiry_date')
+        .optional({ nullable: true })
+        .isISO8601()
+        .withMessage('expiry_date must be a valid ISO 8601 datetime'),
 ];
 
 const articleWriteValidation = [
@@ -131,12 +150,39 @@ const articleWriteValidation = [
         .trim()
         .isLength({ min: 3, max: 300 })
         .withMessage('title must be between 3 and 300 characters'),
+    body('meta_description')
+        .optional({ nullable: true })
+        .isString()
+        .trim()
+        .isLength({ max: 160 })
+        .withMessage('meta_description must be at most 160 characters'),
+    body('tags')
+        .optional({ nullable: true })
+        .isString()
+        .isLength({ max: 5000 })
+        .withMessage('tags must be at most 5000 characters'),
+    body('reading_time_minutes')
+        .optional({ nullable: true })
+        .isInt({ min: 1, max: 1440 })
+        .withMessage('reading_time_minutes must be between 1 and 1440')
+        .toInt(),
     // content validation removed for training_notes
+    body('content')
+        .optional()
+        .isString()
+        .isLength({ min: 1, max: 2000000 })
+        .withMessage('content must be between 1 and 2000000 characters'),
     body('is_published')
         .optional()
         .isBoolean()
         .withMessage('is_published must be a boolean')
         .toBoolean(),
+];
+
+const articleScheduleValidation = [
+    body('publish_date')
+        .isISO8601()
+        .withMessage('publish_date must be a valid ISO 8601 datetime'),
 ];
 
 const profileUpdateValidation = [
@@ -400,6 +446,7 @@ module.exports = {
     verifySignupOtpValidation,
     surveyWriteValidation,
     articleWriteValidation,
+    articleScheduleValidation,
     profileUpdateValidation,
     changePasswordValidation,
     submitResponseValidation,

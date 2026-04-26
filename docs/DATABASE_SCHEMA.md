@@ -2,220 +2,124 @@
 
 ## Overview
 
-The Survey Application uses PostgreSQL as its database. The schema is designed to handle user management, survey creation, response collection, and analytics. All tables use numeric IDs as primary keys with timestamps for audit trails.
+Survey App uses MySQL 8 in runtime with a pg-compatible adapter in the server data layer.
+The schema supports user management, survey creation, response collection, content publishing, and analytics/event tracking.
 
-## Table Descriptions
+## Core Tables
 
-### 1. **users** Table
-Stores user account information and authentication credentials.
-
+### users
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique user identifier |
-| name | VARCHAR(255) | NOT NULL | User's full name |
-| email | VARCHAR(255) | NOT NULL, UNIQUE | User's email address |
-| password_hash | VARCHAR(255) | NOT NULL | Bcrypted password hash |
-| role | user_role | DEFAULT 'user' | Admin or User role |
-| created_at | TIMESTAMP | DEFAULT NOW() | Account creation time |
-| updated_at | TIMESTAMP | DEFAULT NOW() | Last update time |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique user id |
+| name | VARCHAR(255) | NOT NULL | Full name |
+| email | VARCHAR(255) | NOT NULL, UNIQUE | Email address |
+| password_hash | VARCHAR(255) | NOT NULL | Hashed password |
+| role | ENUM('admin','user') | DEFAULT 'user' | Access role |
+| is_banned | BOOLEAN | DEFAULT FALSE | Moderation flag |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Updated time |
 
-**ENUM:** `user_role = ('admin', 'user')`
-
----
-
-### 2. **surveys** Table
-Contains survey metadata and definitions.
-
+### surveys
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique survey identifier |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique survey id |
 | title | VARCHAR(255) | NOT NULL | Survey title |
-| description | TEXT | - | Survey description |
-| created_by | INTEGER | NOT NULL, FK | User who created the survey |
-| status | survey_status | DEFAULT 'draft' | Current status of survey |
-| created_at | TIMESTAMP | DEFAULT NOW() | Creation time |
-| updated_at | TIMESTAMP | DEFAULT NOW() | Last update time |
+| slug | VARCHAR(120) | UNIQUE | SEO/public identifier |
+| description | TEXT | NULL | Survey description |
+| created_by | INT | NOT NULL, FK -> users.id | Creator |
+| status | ENUM('draft','published','closed') | DEFAULT 'draft' | Lifecycle status |
+| allow_multiple_submissions | BOOLEAN | DEFAULT FALSE | Submission policy switch |
+| is_anonymous | BOOLEAN | DEFAULT FALSE | Hide identity in responses |
+| collect_email | BOOLEAN | DEFAULT FALSE | Collect respondent email |
+| expiry_date | DATETIME | NULL | Optional close date |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Updated time |
 
-**ENUM:** `survey_status = ('draft', 'published', 'closed')`
-**Foreign Key:** `created_by` → `users.id` (CASCADE DELETE)
-**Index:** `idx_surveys_created_by`
-
----
-
-### 3. **questions** Table
-Stores individual questions within surveys.
-
+### questions
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique question identifier |
-| survey_id | INTEGER | NOT NULL, FK | Parent survey |
-| question_text | TEXT | NOT NULL | The question content |
-| question_type | question_type | NOT NULL | Type of question |
-| is_required | BOOLEAN | DEFAULT true | Whether answer is required |
-| order_index | INTEGER | - | Display order in survey |
-| created_at | TIMESTAMP | DEFAULT NOW() | Creation time |
-| updated_at | TIMESTAMP | DEFAULT NOW() | Last update time |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique question id |
+| survey_id | INT | NOT NULL, FK -> surveys.id | Parent survey |
+| question_text | TEXT | NOT NULL | Question body |
+| question_type | ENUM('multiple_choice','text','rating','checkbox','text_only','number_only') | NOT NULL | Response type |
+| is_required | BOOLEAN | DEFAULT TRUE | Required answer |
+| order_index | INT | NULL | Display order |
+| description | TEXT | NULL | Optional extended description |
+| help_text | TEXT | NULL | Optional helper text |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Updated time |
 
-**ENUM:** `question_type = ('multiple_choice', 'text', 'rating', 'checkbox')`
-**Foreign Key:** `survey_id` → `surveys.id` (CASCADE DELETE)
-**Index:** `idx_questions_survey_id`
-
----
-
-### 4. **options** Table
-Stores answer options for multiple_choice and checkbox questions.
-
+### options
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique option identifier |
-| question_id | INTEGER | NOT NULL, FK | Parent question |
-| option_text | VARCHAR(255) | NOT NULL | The option text |
-| order_index | INTEGER | - | Display order |
-| created_at | TIMESTAMP | DEFAULT NOW() | Creation time |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique option id |
+| question_id | INT | NOT NULL, FK -> questions.id | Parent question |
+| option_text | VARCHAR(255) | NOT NULL | Option label |
+| order_index | INT | NULL | Display order |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
 
-**Foreign Key:** `question_id` → `questions.id` (CASCADE DELETE)
-**Index:** `idx_options_question_id`
-
----
-
-### 5. **responses** Table
-Tracks each survey submission (one entry per user per survey).
-
+### responses
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique response identifier |
-| survey_id | INTEGER | NOT NULL, FK | Survey being responded to |
-| user_id | INTEGER | NOT NULL, FK | User submitting response |
-| submitted_at | TIMESTAMP | DEFAULT NOW() | Submission time |
-| created_at | TIMESTAMP | DEFAULT NOW() | Record creation time |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique response id |
+| survey_id | INT | NOT NULL, FK -> surveys.id | Parent survey |
+| user_id | INT | NOT NULL, FK -> users.id | Respondent |
+| submitted_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Submission time |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
 
-**Foreign Keys:**
-- `survey_id` → `surveys.id` (CASCADE DELETE)
-- `user_id` → `users.id` (CASCADE DELETE)
+Notes:
+- Duplicate submission behavior is controlled by surveys.allow_multiple_submissions.
+- Duplicate checks are enforced in application logic for survey submission.
 
-**Constraints:** `UNIQUE(survey_id, user_id)` - Prevents duplicate submissions
-**Indexes:**
-- `idx_responses_survey_id`
-- `idx_responses_user_id`
-
----
-
-### 6. **answers** Table
-Stores individual question answers within a response.
-
+### answers
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique answer identifier |
-| response_id | INTEGER | NOT NULL, FK | The response this answer belongs to |
-| question_id | INTEGER | NOT NULL, FK | The question being answered |
-| answer_text | TEXT | - | Text answer (for open-ended questions) |
-| option_id | INTEGER | FK | Selected option (for choice-based) |
-| created_at | TIMESTAMP | DEFAULT NOW() | Creation time |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique answer id |
+| response_id | INT | NOT NULL, FK -> responses.id | Parent response |
+| question_id | INT | NOT NULL, FK -> questions.id | Parent question |
+| answer_text | TEXT | NULL | Text answer |
+| option_id | INT | NULL, FK -> options.id | Choice answer |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
 
-**Foreign Keys:**
-- `response_id` → `responses.id` (CASCADE DELETE)
-- `question_id` → `questions.id` (CASCADE DELETE)
-- `option_id` → `options.id` (SET NULL)
-
-**Indexes:**
-- `idx_answers_response_id`
-- `idx_answers_question_id`
-
----
-
-### 7. **articles** Table
-Stores published articles.
-
+### articles
 | Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Unique article identifier |
+|---|---|---|---|
+| id | INT AUTO_INCREMENT | PRIMARY KEY | Unique article id |
 | title | VARCHAR(255) | NOT NULL | Article title |
-| content | TEXT | NOT NULL | Article content (HTML or markdown) |
-| author | INTEGER | NOT NULL, FK | Author user ID |
-| is_published | BOOLEAN | DEFAULT false | Publication status |
-| created_at | TIMESTAMP | DEFAULT NOW() | Creation time |
-| updated_at | TIMESTAMP | DEFAULT NOW() | Last update time |
+| slug | VARCHAR(120) | UNIQUE | SEO/public identifier |
+| content | LONGTEXT | NOT NULL | Article body |
+| author | INT | NOT NULL, FK -> users.id | Author |
+| is_published | BOOLEAN | DEFAULT FALSE | Publish flag |
+| meta_description | VARCHAR(160) | NULL | SEO description |
+| tags | TEXT | NULL | Comma-separated tags |
+| reading_time_minutes | INT | DEFAULT 1 | Estimated reading time |
+| scheduled_publish_at | DATETIME | NULL | Optional scheduled publish time |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Created time |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Updated time |
 
-**Foreign Key:** `author` → `users.id` (CASCADE DELETE)
-**Index:** `idx_articles_author`
+## Additional Feature Areas
 
----
+- Media: media_posts and related linkage fields for survey/article-backed cards.
+- OTP registration: signup_otp_verifications.
+- Consulting: consulting_services, consulting_requests, consulting_events.
+- Training: training_categories, training_videos, training_playlists, playlist_items, training_notes.
+- Analytics/eventing: platform_events.
+- Draft/autosave: survey_drafts and article_drafts.
 
-## Key Design Decisions
+## Relationship Highlights
 
-### 1. **Duplicate Response Prevention**
-The `UNIQUE(survey_id, user_id)` constraint on the `responses` table prevents users from submitting multiple responses to the same survey.
-
-### 2. **Flexible Answer Storage**
-The `answers` table supports:
-- Text answers via `answer_text` (for text/rating questions)
-- Option-based answers via `option_id` (for multiple choice/checkbox)
-
-### 3. **Cascading Deletes**
-When a survey is deleted, all associated questions, options, responses, and answers are automatically deleted.
-
-### 4. **Indexing Strategy**
-Foreign keys are indexed for fast lookups in queries that filter by:
-- Surveys by creator
-- Questions by survey
-- Responses by survey or user
-- Answers by response or question
-
-### 5. **Timestamps**
-All tables include `created_at` and `updated_at` timestamps for audit trails and sorting.
-
-### 6. **ENUM Types**
-PostgreSQL ENUM types enforce valid values:
-- User roles: admin, user
-- Survey status: draft, published, closed
-- Question types: multiple_choice, text, rating, checkbox
-
----
-
-## Sample Queries
-
-### Get All Responses for a Survey
-```sql
-SELECT r.id, u.name, r.submitted_at
-FROM responses r
-JOIN users u ON r.user_id = u.id
-WHERE r.survey_id = 1
-ORDER BY r.submitted_at DESC;
-```
-
-### Get All Answers for a Response
-```sql
-SELECT q.question_text, a.answer_text, o.option_text
-FROM answers a
-JOIN questions q ON a.question_id = q.id
-LEFT JOIN options o ON a.option_id = o.id
-WHERE a.response_id = 1;
-```
-
-### Count Responses per Survey
-```sql
-SELECT s.title, COUNT(r.id) as response_count
-FROM surveys s
-LEFT JOIN responses r ON s.id = r.survey_id
-GROUP BY s.id, s.title
-ORDER BY response_count DESC;
-```
-
-### Get Most Selected Option
-```sql
-SELECT o.option_text, COUNT(a.id) as count
-FROM answers a
-JOIN options o ON a.option_id = o.id
-WHERE a.question_id = 3
-GROUP BY o.id, o.option_text
-ORDER BY count DESC;
-```
-
----
+- users 1:N surveys (created_by)
+- users 1:N responses (user_id)
+- users 1:N articles (author)
+- surveys 1:N questions
+- surveys 1:N responses
+- questions 1:N options
+- responses 1:N answers
+- questions 1:N answers
 
 ## Notes
 
-- All IDs use SERIAL type (auto-incrementing integers)
-- Passwords should be hashed using bcryptjs before insertion
-- The schema supports horizontal scaling through proper indexing
-- Future versions may add soft deletes with `deleted_at` timestamps
+- ID columns are auto-incrementing integers.
+- Foreign keys are indexed to support common joins and admin/reporting queries.
+- Password values are stored only as hashes.
+- Use database/mysql/schema.sql as the canonical implementation source for migrations/bootstrap behavior.

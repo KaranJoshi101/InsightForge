@@ -11,8 +11,8 @@ cp .env.example .env
 ```env
 # Database
 DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
+DB_PORT=3306
+DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=survey_app
 
@@ -201,8 +201,8 @@ If you have all credentials ready:
 # Backend .env
 cat > .env << EOF
 DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
+DB_PORT=3306
+DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=survey_app
 NODE_ENV=development

@@ -1,23 +1,23 @@
 # Survey App - Complete Project Documentation
 
-Version: 1.2
-Last Updated: 2026-03-30 (Runtime/config and API documentation sync)
+Version: 1.3
+Last Updated: 2026-04-26 (MySQL migration and consistency sync)
 
 ## 1. Project Overview
 
-Survey App is a full-stack PERN platform for creating surveys, collecting responses, publishing articles/media/training content, offering consulting services with lead capture, and managing users through an admin dashboard.
+Survey App is a full-stack platform for creating surveys, collecting responses, publishing articles/media/training content, offering consulting services with lead capture, and managing users through an admin dashboard.
 
 ### Primary Goals
 - Support secure registration/login with role-based access.
 - Allow admins to build and publish surveys.
-- Allow users to submit one response per survey and review their submissions.
+- Allow users to submit responses based on survey policy (single-submit or multi-submit) and review their submissions.
 - Provide response analytics and export-ready reporting data.
 - Support content workflows for articles, media feed, and training resources.
 - Support consulting services pages with lead capture requests.
 
 ### Core Stack
 - Frontend: React (CRA + CRACO), React Router, Axios, Chart.js
-- Backend: Node.js, Express, PostgreSQL
+- Backend: Node.js, Express, MySQL (mysql2)
 - Auth/Security: JWT, bcryptjs, helmet, CORS policy, rate limiting
 - Uploads: Multer + static serving from backend uploads directory
 
@@ -152,7 +152,7 @@ survey-app/
   - service_id, user_id (nullable), name, email, message, file_url, created_at
 
 ### Important Data Rules
-- One response per user per survey via unique constraint on (survey_id, user_id).
+- Response deduplication is controlled per survey via allow_multiple_submissions.
 - FK cascade strategy removes dependent records on parent delete.
 - ENUM-driven constraints for user roles, survey status, and question type.
 
@@ -177,13 +177,19 @@ survey-app/
 - 18_add_consulting_request_workflow_fields.sql
 - 19_create_platform_events.sql
 - 20_remove_consulting_request_assignment.sql
+- 21_add_media_status.sql
+- 22_sync_feedback_talk_publish_state.sql
+- 23_add_slug_fields.sql
+- 24_advanced_survey_article_features.sql
+- 25_allow_multiple_submissions.sql
+- 26_add_article_scheduling.sql
 
 ## 7. Local Development Setup
 
 ### Prerequisites
 - Node.js 18+
 - npm 9+
-- PostgreSQL 12+
+- MySQL 8+
 
 ### Environment File
 Create .env from .env.example and configure:
@@ -230,7 +236,7 @@ npm run pm2:stop
 - Use strong JWT secret (32+ chars)
 - Set trusted CORS origins
 - Align SERVER_PORT and frontend API target
-- Configure DB SSL when required by managed Postgres
+- Configure DB SSL when required by managed MySQL
 - Configure SMTP for survey confirmation emails
 - Place reverse proxy in front of Node and enforce HTTPS
 
@@ -274,12 +280,13 @@ Additional operational script:
 
 Authentication:
 - POST /api/auth/register
+- POST /api/auth/register/verify-otp
 - POST /api/auth/login
 - GET /api/auth/me
 
 Surveys:
 - GET /api/surveys
-- GET /api/surveys/:id
+- GET /api/surveys/:identifier (slug or legacy id)
 - POST /api/surveys (admin)
 - PUT /api/surveys/:id (admin)
 - DELETE /api/surveys/:id (admin)
@@ -294,7 +301,7 @@ Responses:
 
 Articles:
 - GET /api/articles
-- GET /api/articles/:id
+- GET /api/articles/:identifier (slug or legacy id)
 - POST /api/articles (admin)
 - PUT /api/articles/:id (admin)
 - DELETE /api/articles/:id (admin)

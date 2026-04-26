@@ -24,6 +24,7 @@ const {
   securityHeaders,
 } = require('./middleware/security');
 const pool = require('./config/database');
+const { toSlugBase } = require('./utils/slug');
 
 const app = express();
 
@@ -50,6 +51,15 @@ const assertSecurityConfig = () => {
 };
 
 assertSecurityConfig();
+
+const SITE_URL = String(process.env.SITE_URL || process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+const escapeXml = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;');
 
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -112,13 +122,15 @@ app.get('/api/health/db', async (req, res) => {
     const checks = await Promise.all(
       requiredTables.map(async (tableName) => {
         const result = await pool.query(
-          'SELECT to_regclass($1) AS table_name',
-          [`public.${tableName}`]
+          `SELECT COUNT(*) AS table_count
+           FROM information_schema.tables
+           WHERE table_schema = DATABASE() AND table_name = $1`,
+          [tableName]
         );
 
         return {
           table: tableName,
-          exists: Boolean(result.rows[0]?.table_name),
+          exists: Number(result.rows[0]?.table_count || 0) > 0,
         };
       })
     );
@@ -141,6 +153,89 @@ app.get('/api/health/db', async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
+});
+
+app.get('/sitemap.xml', async (_req, res) => {
+  try {
+    const [articleRows, surveyRows, trainingRows] = await Promise.all([
+      pool.query(
+        `SELECT a.slug, a.updated_at
+         FROM articles a
+         WHERE a.is_published = true
+            OR EXISTS (SELECT 1 FROM media_posts mp WHERE mp.article_id = a.id)`
+      ),
+      pool.query(
+        `SELECT s.slug, s.updated_at
+         FROM surveys s
+         WHERE s.status = 'published'
+            OR EXISTS (SELECT 1 FROM media_posts mp WHERE mp.survey_id = s.id)`
+      ),
+      pool.query(
+        `SELECT c.name AS category_name, p.name AS playlist_name, GREATEST(c.updated_at, p.updated_at) AS updated_at
+         FROM training_playlists p
+         JOIN training_categories c ON c.id = p.category_id
+         WHERE c.is_active = true AND p.is_active = true`
+      ),
+    ]);
+
+    const staticPaths = ['/', '/articles', '/surveys', '/training', '/media', '/consulting'];
+    const urls = [];
+
+    staticPaths.forEach((pathName) => {
+      urls.push({
+        loc: `${SITE_URL}${pathName}`,
+        lastmod: new Date().toISOString(),
+      });
+    });
+
+    articleRows.rows.forEach((row) => {
+      urls.push({
+        loc: `${SITE_URL}/articles/${encodeURIComponent(row.slug)}`,
+        lastmod: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+      });
+    });
+
+    surveyRows.rows.forEach((row) => {
+      urls.push({
+        loc: `${SITE_URL}/surveys/${encodeURIComponent(row.slug)}`,
+        lastmod: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+      });
+    });
+
+    trainingRows.rows.forEach((row) => {
+      urls.push({
+        loc: `${SITE_URL}/training/${encodeURIComponent(toSlugBase(row.category_name))}/${encodeURIComponent(toSlugBase(row.playlist_name))}`,
+        lastmod: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+      });
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      urls.map((url) => {
+        const lastmodTag = url.lastmod ? `<lastmod>${escapeXml(url.lastmod)}</lastmod>` : '';
+        return `  <url><loc>${escapeXml(url.loc)}</loc>${lastmodTag}</url>`;
+      }).join('\n') +
+      `\n</urlset>`;
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.send(xml);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to build sitemap', details: error.message });
+  }
+});
+
+app.get('/robots.txt', (_req, res) => {
+  const content = [
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /admin',
+    'Disallow: /api',
+    '',
+    `Sitemap: ${SITE_URL}/sitemap.xml`,
+  ].join('\n');
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(content);
 });
 
 // Root endpoint
@@ -177,27 +272,73 @@ app.use(errorHandler);
 const ensureSignupOtpTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS signup_otp_verifications (
-      id SERIAL PRIMARY KEY,
+      id INT AUTO_INCREMENT PRIMARY KEY,
       email VARCHAR(255) NOT NULL UNIQUE,
       name VARCHAR(100) NOT NULL,
       password_hash VARCHAR(255) NOT NULL,
       otp_hash VARCHAR(255) NOT NULL,
-      expires_at TIMESTAMP NOT NULL,
+      expires_at DATETIME NOT NULL,
       attempts INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
 
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_signup_otp_email
-      ON signup_otp_verifications (email)
-  `);
+  const emailIndexCheck = await pool.query(
+    `SELECT COUNT(*) AS index_count
+     FROM information_schema.statistics
+     WHERE table_schema = DATABASE()
+       AND table_name = 'signup_otp_verifications'
+       AND index_name = 'idx_signup_otp_email'`
+  );
 
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_signup_otp_expires_at
-      ON signup_otp_verifications (expires_at)
-  `);
+  if (Number(emailIndexCheck.rows[0]?.index_count || 0) === 0) {
+    await pool.query('CREATE INDEX idx_signup_otp_email ON signup_otp_verifications (email)');
+  }
+
+  const expiresIndexCheck = await pool.query(
+    `SELECT COUNT(*) AS index_count
+     FROM information_schema.statistics
+     WHERE table_schema = DATABASE()
+       AND table_name = 'signup_otp_verifications'
+       AND index_name = 'idx_signup_otp_expires_at'`
+  );
+
+  if (Number(expiresIndexCheck.rows[0]?.index_count || 0) === 0) {
+    await pool.query('CREATE INDEX idx_signup_otp_expires_at ON signup_otp_verifications (expires_at)');
+  }
+};
+
+const ensureSurveySlugColumn = async () => {
+  const slugColumnCheck = await pool.query(
+    `SELECT COUNT(*) AS column_count
+     FROM information_schema.columns
+     WHERE table_schema = DATABASE()
+       AND table_name = 'surveys'
+       AND column_name = 'slug'`
+  );
+
+  if (Number(slugColumnCheck.rows[0]?.column_count || 0) === 0) {
+    await pool.query('ALTER TABLE surveys ADD COLUMN slug VARCHAR(120) NULL');
+  }
+
+  await pool.query(
+    `UPDATE surveys
+     SET slug = CONCAT('survey-', id)
+     WHERE slug IS NULL OR slug = ''`
+  );
+
+  const slugIndexCheck = await pool.query(
+    `SELECT COUNT(*) AS index_count
+     FROM information_schema.statistics
+     WHERE table_schema = DATABASE()
+       AND table_name = 'surveys'
+       AND index_name = 'idx_surveys_slug_unique'`
+  );
+
+  if (Number(slugIndexCheck.rows[0]?.index_count || 0) === 0) {
+    await pool.query('CREATE UNIQUE INDEX idx_surveys_slug_unique ON surveys (slug)');
+  }
 };
 
 const PORT = Number(process.env.SERVER_PORT || 5000);
@@ -209,6 +350,7 @@ let server;
 
 const startServer = async () => {
   await ensureSignupOtpTable();
+  await ensureSurveySlugColumn();
 
   server = app.listen(PORT, () => {
     console.log(`

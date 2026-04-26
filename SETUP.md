@@ -1,256 +1,177 @@
-# 🚀 Setup Guide - Survey Application
+# Setup Guide - Survey Application
 
-Follow these steps to get your PERN stack survey application up and running.
+Follow these steps to run the app locally with the current MySQL-based backend.
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Install the following first:
 
-1. **Node.js** (v14 or higher)
+1. Node.js 18+
    - Download: https://nodejs.org/
    - Verify: `node --version`
 
-2. **PostgreSQL** (v12 or higher)
-   - Download: https://www.postgresql.org/download/
-   - Verify: `psql --version`
+2. npm 9+
+   - Verify: `npm --version`
 
-3. **Git** (optional, for version control)
+3. MySQL 8+
+   - Verify: `mysql --version`
+
+4. Git (optional)
    - Download: https://git-scm.com/
 
----
+## Step 1: Verify MySQL Is Running
 
-## Step 1: Verify PostgreSQL Installation
-
-### On Windows:
-
-1. Open Command Prompt or PowerShell
-2. Verify PostgreSQL is installed:
-   ```bash
-   psql --version
-   ```
-
-3. Make sure PostgreSQL is running:
-   - Check Services: Press `Win + R` → Type `services.msc`
-   - Look for "postgresql-x64-xx" service
-   - If not running, right-click and select "Start"
-
-4. Test connection (default password is usually what you set during installation):
-   ```bash
-   psql -U postgres
-   ```
-
-5. If you see `postgres=#` prompt, PostgreSQL is working. Type `\q` to exit.
-
-### On Mac:
+On Windows:
+1. Open Services (`Win + R`, then `services.msc`).
+2. Ensure your MySQL service is running.
+3. Test CLI access:
 
 ```bash
-brew services start postgresql@15
-# or
-pg_ctl -D /usr/local/var/postgres start
+mysql -u root -p
 ```
 
-### On Linux:
-
-```bash
-sudo systemctl start postgresql
-```
-
----
+If you can connect, MySQL is ready.
 
 ## Step 2: Configure Environment Variables
 
-The `.env` file has been created with default values:
+Create or update `.env` in the project root with MySQL values:
 
-```bash
+```env
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=3306
 DB_NAME=survey_app
-DB_USER=postgres
-DB_PASSWORD=postgres
+DB_USER=root
+DB_PASSWORD=your_password
+DB_SSL=false
+
+SERVER_PORT=5000
+NODE_ENV=development
+JWT_SECRET=replace_with_a_long_random_secret
+REACT_APP_API_URL=http://localhost:5000/api
 ```
 
-**If you used a different password for PostgreSQL**, edit `.env`:
+If your MySQL username or password differs, adjust `DB_USER` and `DB_PASSWORD`.
+
+## Step 3: Install Dependencies
+
+From the project root:
 
 ```bash
-# Edit the file (use your preferred editor)
-# Windows: notepad .env
-# Mac/Linux: nano .env
-
-# Update the password line:
-DB_PASSWORD=your_actual_postgres_password
+npm run install-all
 ```
 
----
+## Step 4: Initialize the Database
 
-## Step 3: Initialize the Database
+Run one of the init flows:
 
-Navigate to the project directory and run:
+Option A (root script):
 
 ```bash
-cd /d/softee/survey-app
-
-# Initialize database (creates tables and seed data)
 npm run db:init
 ```
 
-### Expected Output:
+Option B (database package directly):
 
-```
-🚀 Starting database initialization...
-
-📦 Creating database...
-✅ Database 'survey_app' created successfully
-
-📋 Creating tables...
-✅ Tables created successfully
-
-🌱 Inserting seed data...
-✅ Seed data inserted successfully
-
-🎉 Database initialization completed successfully!
-✨ Database: survey_app
-✨ Host: localhost:5432
+```bash
+cd database
+npm run init
 ```
 
-### Troubleshooting:
+Expected result:
+- Database is created if missing.
+- MySQL schema is applied.
+- Seed data is inserted.
 
-**Error: `role "postgres" does not exist`**
-- PostgreSQL might not have a default postgres user
-- You can check existing users in PostgreSQL:
-  ```bash
-  psql -l
-  ```
-- Update `.env` with your actual PostgreSQL username
+## Step 5: Start the Application
 
-**Error: `connect ECONNREFUSED 127.0.0.1:5432`**
-- PostgreSQL is not running
-- Windows: Start it from Services
-- Mac/Linux: `brew services start postgresql` or `sudo systemctl start postgresql`
-
-**Error: `FATAL: password authentication failed`**
-- Wrong password in `.env`
-- Reset password (or verify the correct one from installation)
-
----
-
-## Step 4: Start the Application
-
-### Option A: Run Both Server and Client Together
+Run both frontend and backend together:
 
 ```bash
 npm run dev
 ```
 
-This will start:
-- **Backend**: http://localhost:5000
-- **Frontend**: http://localhost:3000
+Or run separately:
 
-### Option B: Run Server and Client Separately
+Terminal 1:
 
-**Terminal 1 - Start Backend:**
 ```bash
 npm run server
 ```
-Expected: `Server is running on port 5000`
 
-**Terminal 2 - Start Frontend:**
+Terminal 2:
+
 ```bash
 npm run client
 ```
-Expected: Browser opens at http://localhost:3000
 
----
+Default URLs:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000/api
+- Health: http://localhost:5000/api/health
+- DB health: http://localhost:5000/api/health/db
 
-## Step 5: Verify Everything Works
+## Step 6: Verify Core Flows
 
-1. **Backend**: Open http://localhost:5000/
-   - Should show "Cannot GET /" (API not configured yet)
+Quick checks:
 
-2. **Frontend**: Open http://localhost:3000/
-   - Should load React app
-
-3. **Database**: Check if tables were created:
-   ```bash
-   psql -U postgres -d survey_app
-   # Then run:
-   \dt
-   # Should list all tables
-   ```
-
----
-
-## Project Structure Reference
-
-```
-survey-app/
-├── server/              # Express.js backend
-│   ├── config/         # Database & app config
-│   ├── controllers/    # Route logic
-│   ├── middleware/     # Express middleware
-│   ├── routes/         # API routes
-│   ├── models/         # Data models
-│   └── utils/          # Helper functions
-├── client/             # React frontend
-│   ├── src/
-│   │   ├── components/ # React components
-│   │   ├── pages/      # Page components
-│   │   ├── services/   # API services
-│   │   └── utils/      # Helper functions
-│   └── public/         # Static files
-├── database/           # Database files
-│   ├── migrations/     # Schema files
-│   ├── seeds/          # Seed data
-│   └── init.js         # Database init script
-├── docs/               # Documentation
-├── .env                # Environment variables
-└── package.json        # Root package config
-```
-
----
-
-## Common Commands
+1. Health endpoint returns 200:
 
 ```bash
-# Install all dependencies
-npm install
+curl http://localhost:5000/api/health
+```
 
-# Install server dependencies only
-cd server && npm install
+2. Auth behavior:
+- `POST /api/auth/register` starts OTP flow.
+- `POST /api/auth/register/verify-otp` completes account creation.
 
-# Install client dependencies only
-cd client && npm install
+3. Public resources:
+- `GET /api/surveys`
+- `GET /api/articles`
+
+## Common Troubleshooting
+
+Error: `connect ECONNREFUSED 127.0.0.1:3306`
+- MySQL is not running, or port is different.
+- Start MySQL service and verify `DB_PORT`.
+
+Error: `Access denied for user ...`
+- Wrong credentials in `.env`.
+- Update `DB_USER` and `DB_PASSWORD`.
+
+Error: `ER_BAD_DB_ERROR: Unknown database 'survey_app'`
+- Init did not run successfully.
+- Re-run `npm run db:init`.
+
+Error: app tests hitting stale server state
+- A previous process may still be bound to port 5000.
+- Stop old process or temporarily run with a different `SERVER_PORT`.
+
+## Useful Commands
+
+```bash
+# Install dependencies for all packages
+npm run install-all
 
 # Initialize database
 npm run db:init
 
-# Run backend in development
+# Run backend + frontend
+npm run dev
+
+# Run backend only
 npm run server
 
-# Run frontend in development
+# Run frontend only
 npm run client
 
-# Run both together
-npm run dev
+# Smoke test
+npm run smoke
 ```
 
----
+## References
 
-## Next Steps
-
-Once everything is running:
-
-1. Check the README.md for feature descriptions
-2. Review docs/DATABASE_SCHEMA.md for database details
-3. Start building API endpoints in server/routes/
-4. Create React components in client/src/components/
-
----
-
-## Getting Help
-
-- PostgreSQL Documentation: https://www.postgresql.org/docs/
-- Express.js Documentation: https://expressjs.com/
-- React Documentation: https://react.dev/
-- Node.js Documentation: https://nodejs.org/docs/
-
-For project-specific issues, check the main README.md file.
+- README.md
+- docs/PROJECT_DOCUMENTATION.md
+- docs/API_DOCUMENTATION.md
+- docs/DATABASE_SCHEMA.md
+- DEPLOYMENT.md

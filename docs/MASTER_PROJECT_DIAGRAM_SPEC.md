@@ -4,6 +4,8 @@ Version: 1.0
 Date: 2026-03-23  
 Scope: Full project modeling source for architecture, use case, DFD, sequence, ER/RDBMS, and UML diagrams.
 
+Update note (2026-04-26): Runtime data layer migrated to MySQL with a pg-compatible adapter.
+
 ## 1. Purpose
 
 This document is the single source of truth for any diagramming platform.  
@@ -21,7 +23,7 @@ Use this file to generate professional diagrams in Mermaid, Draw.io, Lucidchart,
 ## 2. Project Summary
 
 Product name: Survey App  
-Stack: PERN (PostgreSQL, Express, React, Node.js)  
+Stack: MySQL, Express, React, Node.js  
 Primary goals:
 - Collect survey responses from users
 - Provide analytics, demographics, and export for admins
@@ -40,11 +42,11 @@ Actors:
 - Visitor: Unauthenticated user browsing public pages
 - User: Authenticated non-admin account
 - Admin: Authenticated privileged account
-- System (External): PostgreSQL database
+- System (External): MySQL database
 - System (External): Upload storage served by backend /uploads
 
 Actor permissions summary:
-- Visitor: Register, login, view published surveys, view published articles
+- Visitor: Start OTP-gated registration, login, view published surveys, view published articles
 - User: Submit survey response, view own responses, view/update profile
 - Admin: Survey CRUD, question/option CRUD, response analytics/export/demographics, article CRUD/publish, user governance, dashboard stats
 
@@ -55,9 +57,9 @@ Public routes:
 - /login
 - /register
 - /articles
-- /articles/:id
+- /articles/:slug
 - /surveys
-- /surveys/:id
+- /surveys/:slug
 
 Authenticated user routes:
 - /dashboard
@@ -79,14 +81,15 @@ Authenticated admin routes:
 ## 5. Canonical Use Case Catalog
 
 ### Authentication and Access
-- UC-A1 Register account
+- UC-A1 Register account (OTP initiation)
+- UC-A1b Verify registration OTP
 - UC-A2 Login account
 - UC-A3 Get current authenticated user (/auth/me)
 
 ### Survey Participation (User)
 - UC-U1 Browse published surveys
 - UC-U2 View survey details and questions
-- UC-U3 Submit survey response (one submission per user per survey)
+- UC-U3 Submit survey response (single-submit or multi-submit based on survey setting)
 - UC-U4 View own response history
 - UC-U5 View response detail (own response or admin)
 
@@ -141,7 +144,7 @@ Layer 3: Service Layer (Controllers)
 - User controller
 
 Layer 4: Data and Storage
-- PostgreSQL relational database
+- MySQL relational database
 - Upload static file storage (/uploads)
 - Excel workbook generation engine for exports
 
@@ -157,7 +160,7 @@ Core process:
 - P0 Survey App System
 
 Data stores:
-- D0 PostgreSQL
+- D0 MySQL
 - D1 Upload Storage
 
 Primary flows:
@@ -198,10 +201,10 @@ Flow mapping:
 
 ### SQ-1 Register/Login
 1. Visitor submits credentials from UI
-2. UI calls /api/auth/register or /api/auth/login
-3. Auth controller validates and queries users
-4. Server returns JWT and user payload
-5. AuthContext stores token and user profile
+2. UI calls /api/auth/register
+3. Server issues OTP challenge for signup verification
+4. UI calls /api/auth/register/verify-otp
+5. UI calls /api/auth/login and AuthContext stores token and user profile
 
 ### SQ-2 Admin Creates Survey with Questions
 1. Admin opens survey create screen
@@ -213,7 +216,7 @@ Flow mapping:
 ### SQ-3 User Submits Response
 1. User opens /survey/:id/take and fills answers
 2. UI POST /api/responses with survey_id and answers[]
-3. Response controller validates survey existence and duplicate submission rule
+3. Response controller validates survey existence and applies per-survey duplicate policy
 4. Controller inserts response row and answer rows in transaction
 5. Controller enforces text_only/number_only question constraints
 6. Commit and return response_id
@@ -241,12 +244,13 @@ Base URL: http://localhost:5000/api
 
 Auth:
 - POST /auth/register (public)
+- POST /auth/register/verify-otp (public)
 - POST /auth/login (public)
 - GET /auth/me (authenticated)
 
 Surveys:
 - GET /surveys (public, pagination, optional status)
-- GET /surveys/:id (public)
+- GET /surveys/:identifier (public; slug or legacy id)
 - POST /surveys (admin)
 - PUT /surveys/:id (admin)
 - DELETE /surveys/:id (admin)
@@ -268,7 +272,7 @@ Responses:
 
 Articles:
 - GET /articles (public, published only)
-- GET /articles/:id (public, published only)
+- GET /articles/:identifier (public, published only; slug or legacy id)
 - GET /articles/admin/my-articles (admin)
 - POST /articles (admin)
 - PUT /articles/:id (admin)
@@ -343,7 +347,7 @@ Profile rules:
 
 ## 11. Database Canonical Schema
 
-Database: PostgreSQL
+Database: MySQL
 
 Enums:
 - user_role: admin, user
@@ -392,7 +396,7 @@ responses
 - survey_id FK -> surveys.id
 - user_id FK -> users.id
 - submitted_at, created_at
-- UNIQUE(survey_id, user_id)
+- Duplicate policy enforced by survey.allow_multiple_submissions
 
 answers
 - id PK
@@ -461,7 +465,7 @@ Server-side logical modules:
 - Controllers: auth, survey, response, article, user, media
 - Routes: auth.js, surveys.js, responses.js, articles.js, users.js, media.js
 - Utilities: linkedinIntegration.js (for LinkedIn post sync)
-- Data access: PostgreSQL pool queries
+- Data access: MySQL (mysql2) with pg-compatible query adapter
 
 Primary dependencies:
 - Client services -> API routes
@@ -523,7 +527,7 @@ nodes:
     label: User Controller
   - id: db_pg
     type: datastore
-    label: PostgreSQL
+    label: MySQL
   - id: fs_uploads
     type: datastore
     label: Upload Storage
@@ -589,7 +593,7 @@ entities:
   - surveys(id PK, created_by FK->users.id, status)
   - questions(id PK, survey_id FK->surveys.id, question_type, is_required, order_index)
   - options(id PK, question_id FK->questions.id, order_index)
-  - responses(id PK, survey_id FK->surveys.id, user_id FK->users.id, UNIQUE(survey_id,user_id))
+  - responses(id PK, survey_id FK->surveys.id, user_id FK->users.id, dedupe policy from surveys.allow_multiple_submissions)
   - answers(id PK, response_id FK->responses.id, question_id FK->questions.id, option_id FK->options.id nullable)
   - articles(id PK, author FK->users.id, is_published)
 relations:
@@ -612,7 +616,7 @@ actors:
   - User
   - Admin
 use_cases:
-  - Visitor: [Register, Login, View Published Surveys, View Published Articles]
+  - Visitor: [Start OTP Registration, Verify OTP, Login, View Published Surveys, View Published Articles]
   - User: [Get Current User, Submit Response, View My Responses, View Response Detail, View/Update Profile]
   - Admin: [Survey CRUD, Question CRUD, Option CRUD, Survey Analytics, Survey Demographics, Export Excel, Article CRUD/Publish, List Users, Ban/Unban Users, Dashboard Stats]
 ```

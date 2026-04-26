@@ -30,6 +30,32 @@ Authorization: Bearer <token>
 **Response:**
 ```json
 {
+  "message": "OTP sent to your email",
+  "email": "john@example.com",
+  "expires_in_minutes": 10
+}
+```
+
+**Notes:**
+- `/auth/register` initiates OTP-based signup.
+- Account creation is completed by `/auth/register/verify-otp`.
+
+---
+
+### Verify Registration OTP
+**POST** `/auth/register/verify-otp`
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "otp": "123456"
+}
+```
+
+**Response:**
+```json
+{
   "message": "User registered successfully",
   "user": {
     "id": 1,
@@ -154,7 +180,10 @@ Authorization: Bearer <token>
 ---
 
 ### Get Survey Details
-**GET** `/surveys/:id`
+**GET** `/surveys/:identifier`
+
+**Notes:**
+- `identifier` accepts survey slug or legacy numeric id.
 
 **Response:**
 ```json
@@ -448,7 +477,10 @@ Authorization: Bearer <admin_token>
 ---
 
 ### Get Article Details
-**GET** `/articles/:id`
+**GET** `/articles/:identifier`
+
+**Notes:**
+- `identifier` accepts article slug or legacy numeric id.
 
 **Response:**
 ```json
@@ -913,4 +945,4 @@ Authorization: Bearer <admin_token>
 - Pagination defaults: page=1, limit=10
 - JWT tokens expire after 7 days
 - Passwords are hashed using bcryptjs
-- Database uses PostgreSQL with SERIAL IDs
+- Database runtime uses MySQL (mysql2) with a pg-compatible adapter

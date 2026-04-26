@@ -36,6 +36,13 @@ const sanitizeBenefits = (value) => {
 
 const generateSessionId = () => `sess_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
 
+const formatDay = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const normalizeSessionId = (req) => {
     const candidate = req.body.session_id || req.headers['x-session-id'];
     if (typeof candidate !== 'string') return generateSessionId();
@@ -319,21 +326,47 @@ const getConsultingAnalyticsOverview = async (req, res, next) => {
             ? req.query.period
             : '30d';
 
-        const [totalsResult, viewedResult, requestedResult, metricsResult, trendResult] = await Promise.all([
-            pool.query(
+        const getWindowClause = (windowPeriod) => {
+            if (windowPeriod === '7d') {
+                return "created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            }
+
+            if (windowPeriod === '30d') {
+                return "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+            }
+
+            return '1 = 1';
+        };
+
+        const getConsultingCountQuery = (windowPeriod) => {
+            const whereClause = getWindowClause(windowPeriod);
+            return pool.query(
                 `SELECT
-                    (SELECT COUNT(*)::int FROM consulting_events WHERE event_type = 'view') AS total_views,
-                    (SELECT COUNT(*)::int FROM consulting_requests) AS total_requests,
-                    (SELECT COUNT(*)::int FROM consulting_events WHERE event_type = 'view' AND created_at >= NOW() - INTERVAL '7 days') AS total_views_7d,
-                    (SELECT COUNT(*)::int FROM consulting_requests WHERE created_at >= NOW() - INTERVAL '7 days') AS total_requests_7d,
-                    (SELECT COUNT(*)::int FROM consulting_events WHERE event_type = 'view' AND created_at >= NOW() - INTERVAL '30 days') AS total_views_30d,
-                    (SELECT COUNT(*)::int FROM consulting_requests WHERE created_at >= NOW() - INTERVAL '30 days') AS total_requests_30d,
-                    (SELECT COUNT(DISTINCT COALESCE('u:' || user_id::text, 's:' || NULLIF(session_id, ''), 'e:' || id::text))::int FROM consulting_events WHERE event_type = 'view') AS total_unique_views,
-                    (SELECT COUNT(DISTINCT COALESCE('u:' || user_id::text, 's:' || NULLIF(session_id, ''), 'e:' || id::text))::int FROM consulting_events WHERE event_type = 'view' AND created_at >= NOW() - INTERVAL '7 days') AS total_unique_views_7d,
-                    (SELECT COUNT(DISTINCT COALESCE('u:' || user_id::text, 's:' || NULLIF(session_id, ''), 'e:' || id::text))::int FROM consulting_events WHERE event_type = 'view' AND created_at >= NOW() - INTERVAL '30 days') AS total_unique_views_30d`
-            ),
+                    COUNT(*) AS views,
+                    COUNT(DISTINCT COALESCE(CONCAT('u:', user_id), CONCAT('s:', NULLIF(session_id, '')), CONCAT('e:', id))) AS unique_views
+                 FROM consulting_events
+                 WHERE event_type = 'view' AND ${whereClause}`
+            );
+        };
+
+        const getRequestCountQuery = (windowPeriod) => {
+            const whereClause = getWindowClause(windowPeriod);
+            return pool.query(
+                `SELECT COUNT(*) AS requests
+                 FROM consulting_requests
+                 WHERE ${whereClause}`
+            );
+        };
+
+        const [totalsAll, totals7d, totals30d, requestsAll, requests7d, requests30d, viewedResult, requestedResult, metricsResult, minDayResult, viewsTrendResult, requestsTrendResult] = await Promise.all([
+            getConsultingCountQuery('all'),
+            getConsultingCountQuery('7d'),
+            getConsultingCountQuery('30d'),
+            getRequestCountQuery('all'),
+            getRequestCountQuery('7d'),
+            getRequestCountQuery('30d'),
             pool.query(
-                `SELECT cs.id, cs.title, cs.slug, COUNT(*)::int AS views
+                `SELECT cs.id, cs.title, cs.slug, COUNT(*) AS views
                  FROM consulting_events ce
                  JOIN consulting_services cs ON cs.id = ce.service_id
                  WHERE ce.event_type = 'view'
@@ -342,10 +375,10 @@ const getConsultingAnalyticsOverview = async (req, res, next) => {
                  LIMIT 5`
             ),
             pool.query(
-                     `SELECT cs.id, cs.title, cs.slug, COUNT(*)::int AS requests
-                      FROM consulting_requests cr
-                      JOIN consulting_services cs ON cs.id = cr.service_id
-                      GROUP BY cs.id, cs.title, cs.slug
+                `SELECT cs.id, cs.title, cs.slug, COUNT(*) AS requests
+                 FROM consulting_requests cr
+                 JOIN consulting_services cs ON cs.id = cr.service_id
+                 GROUP BY cs.id, cs.title, cs.slug
                  ORDER BY requests DESC, cs.title ASC
                  LIMIT 5`
             ),
@@ -354,86 +387,52 @@ const getConsultingAnalyticsOverview = async (req, res, next) => {
                     cs.id,
                     cs.title,
                     cs.slug,
-                          COALESCE(cv.views, 0)::int AS views,
-                          COALESCE(crq.requests, 0)::int AS requests
+                    COALESCE(v.views, 0) AS views,
+                    COALESCE(r.requests, 0) AS requests
                  FROM consulting_services cs
-                      LEFT JOIN (
-                          SELECT service_id, COUNT(*)::int AS views
-                          FROM consulting_events
-                          WHERE event_type = 'view'
-                          GROUP BY service_id
-                      ) cv ON cv.service_id = cs.id
-                      LEFT JOIN (
-                          SELECT service_id, COUNT(*)::int AS requests
-                          FROM consulting_requests
-                          GROUP BY service_id
-                      ) crq ON crq.service_id = cs.id
+                 LEFT JOIN (
+                    SELECT service_id, COUNT(*) AS views
+                    FROM consulting_events
+                    WHERE event_type = 'view'
+                    GROUP BY service_id
+                 ) v ON v.service_id = cs.id
+                 LEFT JOIN (
+                    SELECT service_id, COUNT(*) AS requests
+                    FROM consulting_requests
+                    GROUP BY service_id
+                 ) r ON r.service_id = cs.id
                  ORDER BY cs.title ASC`
             ),
             pool.query(
-                `WITH bounds AS (
-                    SELECT COALESCE(
-                        LEAST(
-                            COALESCE((SELECT MIN(created_at)::date FROM consulting_events WHERE event_type = 'view'), CURRENT_DATE),
-                            COALESCE((SELECT MIN(created_at)::date FROM consulting_requests), CURRENT_DATE)
-                        ),
-                        CURRENT_DATE
-                    ) AS min_day
-                 ),
-                 days AS (
-                    SELECT generate_series(
-                        CASE
-                            WHEN $1 = '7d' THEN CURRENT_DATE - INTERVAL '6 days'
-                            WHEN $1 = '30d' THEN CURRENT_DATE - INTERVAL '29 days'
-                            ELSE (SELECT min_day::timestamp FROM bounds)
-                        END,
-                        CURRENT_DATE::timestamp,
-                        INTERVAL '1 day'
-                    )::date AS day
-                 ),
-                 views AS (
-                     SELECT date_trunc('day', created_at)::date AS day, COUNT(*)::int AS views
-                     FROM consulting_events
-                     WHERE event_type = 'view'
-                     GROUP BY date_trunc('day', created_at)::date
-                 ),
-                 requests AS (
-                     SELECT date_trunc('day', created_at)::date AS day, COUNT(*)::int AS requests
-                     FROM consulting_requests
-                     GROUP BY date_trunc('day', created_at)::date
-                 )
-                 SELECT
-                    to_char(days.day, 'YYYY-MM-DD') AS day,
-                          COALESCE(v.views, 0)::int AS views,
-                          COALESCE(r.requests, 0)::int AS requests
-                 FROM days
-                      LEFT JOIN views v ON v.day = days.day
-                      LEFT JOIN requests r ON r.day = days.day
-                 ORDER BY days.day ASC`,
-                [period]
+                `SELECT LEAST(
+                    COALESCE((SELECT MIN(DATE(created_at)) FROM consulting_events WHERE event_type = 'view'), CURDATE()),
+                    COALESCE((SELECT MIN(DATE(created_at)) FROM consulting_requests), CURDATE())
+                 ) AS min_day`
+            ),
+            pool.query(
+                `SELECT DATE(created_at) AS day, COUNT(*) AS views
+                 FROM consulting_events
+                 WHERE event_type = 'view' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+                 GROUP BY DATE(created_at)
+                 ORDER BY DATE(created_at) ASC`
+            ),
+            pool.query(
+                `SELECT DATE(created_at) AS day, COUNT(*) AS requests
+                 FROM consulting_requests
+                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+                 GROUP BY DATE(created_at)
+                 ORDER BY DATE(created_at) ASC`
             ),
         ]);
-
-        const totals = totalsResult.rows[0] || {
-            total_views: 0,
-            total_requests: 0,
-            total_views_7d: 0,
-            total_requests_7d: 0,
-            total_views_30d: 0,
-            total_requests_30d: 0,
-            total_unique_views: 0,
-            total_unique_views_7d: 0,
-            total_unique_views_30d: 0,
-        };
-        const totalViews = Number(totals.total_views) || 0;
-        const totalRequests = Number(totals.total_requests) || 0;
-        const totalViews7d = Number(totals.total_views_7d) || 0;
-        const totalRequests7d = Number(totals.total_requests_7d) || 0;
-        const totalViews30d = Number(totals.total_views_30d) || 0;
-        const totalRequests30d = Number(totals.total_requests_30d) || 0;
-        const totalUniqueViews = Number(totals.total_unique_views) || 0;
-        const totalUniqueViews7d = Number(totals.total_unique_views_7d) || 0;
-        const totalUniqueViews30d = Number(totals.total_unique_views_30d) || 0;
+        const totalViews = Number(totalsAll.rows[0]?.views) || 0;
+        const totalRequests = Number(requestsAll.rows[0]?.requests) || 0;
+        const totalViews7d = Number(totals7d.rows[0]?.views) || 0;
+        const totalRequests7d = Number(requests7d.rows[0]?.requests) || 0;
+        const totalViews30d = Number(totals30d.rows[0]?.views) || 0;
+        const totalRequests30d = Number(requests30d.rows[0]?.requests) || 0;
+        const totalUniqueViews = Number(totalsAll.rows[0]?.unique_views) || 0;
+        const totalUniqueViews7d = Number(totals7d.rows[0]?.unique_views) || 0;
+        const totalUniqueViews30d = Number(totals30d.rows[0]?.unique_views) || 0;
         const conversionRate = totalViews > 0 ? ((totalRequests / totalViews) * 100) : 0;
         const conversionRateUnique = totalUniqueViews > 0 ? ((totalRequests / totalUniqueViews) * 100) : 0;
         const conversionRate7d = totalViews7d > 0 ? ((totalRequests7d / totalViews7d) * 100) : 0;
@@ -466,6 +465,42 @@ const getConsultingAnalyticsOverview = async (req, res, next) => {
         const selectedConversionUnique = selectedTotals.total_unique_views > 0
             ? ((selectedTotals.total_requests / selectedTotals.total_unique_views) * 100)
             : 0;
+
+        const trendStart = (() => {
+            if (period === '7d') {
+                const date = new Date();
+                date.setHours(0, 0, 0, 0);
+                date.setDate(date.getDate() - 6);
+                return date;
+            }
+
+            if (period === '30d') {
+                const date = new Date();
+                date.setHours(0, 0, 0, 0);
+                date.setDate(date.getDate() - 29);
+                return date;
+            }
+
+            const minDay = minDayResult.rows[0]?.min_day;
+            const date = minDay ? new Date(minDay) : new Date();
+            date.setHours(0, 0, 0, 0);
+            return date;
+        })();
+
+        const viewsByDay = new Map(viewsTrendResult.rows.map((row) => [formatDay(new Date(row.day)), Number(row.views) || 0]));
+        const requestsByDay = new Map(requestsTrendResult.rows.map((row) => [formatDay(new Date(row.day)), Number(row.requests) || 0]));
+        const dailyTrend = [];
+        const trendEnd = new Date();
+        trendEnd.setHours(0, 0, 0, 0);
+
+        for (let cursor = new Date(trendStart); cursor <= trendEnd; cursor.setDate(cursor.getDate() + 1)) {
+            const key = formatDay(cursor);
+            dailyTrend.push({
+                day: key,
+                views: viewsByDay.get(key) || 0,
+                requests: requestsByDay.get(key) || 0,
+            });
+        }
 
         const serviceMetrics = metricsResult.rows.map((row) => {
             const views = Number(row.views) || 0;
@@ -512,7 +547,7 @@ const getConsultingAnalyticsOverview = async (req, res, next) => {
             },
             most_viewed_services: viewedResult.rows,
             most_requested_services: requestedResult.rows,
-            daily_trend: trendResult.rows,
+            daily_trend: dailyTrend,
             service_metrics: serviceMetrics,
         });
     } catch (err) {

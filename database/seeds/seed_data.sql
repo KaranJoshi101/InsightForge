@@ -4,7 +4,7 @@
 -- Admin password: manoj123 (row 1 hash)
 -- Default user password: admin123 (remaining rows hash)
 INSERT INTO users (name, email, password_hash, role, location, age, gender, phone, bio) VALUES
-('Manoj Kumar', 'admin@example.test', '$2a$10$LVtW6aDEwsV3Flu9c1tLCuw7CkHoQrP5KcnzqRrs3913Iml1xs9iG', 'admin', 'New Delhi, India', 39, 'Male', '+1-555-0101', 'Assistant Professor specializing in biostatistics, health economics, and applied data analysis.'),
+('Manoj Kumar', 'manojkumar@jnu.ac.in', '$2a$10$LVtW6aDEwsV3Flu9c1tLCuw7CkHoQrP5KcnzqRrs3913Iml1xs9iG', 'admin', 'New Delhi, India', 39, 'Male', '+1-555-0101', 'Assistant Professor specializing in biostatistics, health economics, and applied data analysis.'),
 ('Marcus Johnson', 'user02@example.test', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'user', 'Chicago, IL', 45, 'Male', '+1-555-0102', 'Healthcare administrator interested in patient satisfaction surveys.'),
 ('Priya Patel', 'user03@example.test', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'user', 'Austin, TX', 28, 'Female', '+1-555-0103', 'UX researcher exploring new survey methodologies.'),
 ('Ahmed Al-Rashid', 'user04@example.test', '$2a$10$S9cRWL3rZ6MrvmE1FmXb2eGv1EDjEMJ86aAtHaGVaF98OJ0pcXCSq', 'user', 'Dubai, UAE', 38, 'Male', '+1-555-0104', 'Business consultant specializing in customer feedback analysis.'),

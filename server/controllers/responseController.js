@@ -24,6 +24,8 @@ const submitResponse = async (req, res, next) => {
             `SELECT
                 id,
                 title,
+                allow_multiple_submissions,
+                expiry_date,
                 submission_email_subject,
                 submission_email_body,
                 submission_email_attachments
@@ -39,16 +41,23 @@ const submitResponse = async (req, res, next) => {
 
         const survey = surveyResult.rows[0];
 
-        // Check if user already submitted this survey
-        const existingResponse = await client.query(
-            'SELECT id FROM responses WHERE survey_id = $1 AND user_id = $2',
-            [survey_id, user_id]
-        );
-
-        if (existingResponse.rows.length > 0) {
-            return res.status(409).json({
-                error: 'You have already submitted a response for this survey',
+        if (survey.expiry_date && new Date(survey.expiry_date) < new Date()) {
+            return res.status(400).json({
+                error: 'This survey has expired and no longer accepts responses',
             });
+        }
+
+        if (!survey.allow_multiple_submissions) {
+            const existingResponse = await client.query(
+                'SELECT id FROM responses WHERE survey_id = $1 AND user_id = $2',
+                [survey_id, user_id]
+            );
+
+            if (existingResponse.rows.length > 0) {
+                return res.status(409).json({
+                    error: 'You have already submitted a response for this survey',
+                });
+            }
         }
 
         // Create response record
@@ -179,7 +188,7 @@ const getSurveyResponses = async (req, res, next) => {
 
         // Check if survey exists
         const surveyResult = await pool.query(
-            'SELECT id FROM surveys WHERE id = $1',
+            'SELECT id, is_anonymous, collect_email FROM surveys WHERE id = $1',
             [surveyId]
         );
 
@@ -250,14 +259,22 @@ const getSurveyResponses = async (req, res, next) => {
             }, new Map());
         }
 
+        const surveyConfig = surveyResult.rows[0];
         const responses = responsesResult.rows.map((response) => {
             const questionMap = answersByResponseId.get(response.id);
             const answers = questionMap
                 ? Array.from(questionMap.values()).sort((left, right) => left.order_index - right.order_index)
                 : [];
 
+            const userName = surveyConfig.is_anonymous ? null : response.user_name;
+            const userEmail = (surveyConfig.is_anonymous || !surveyConfig.collect_email)
+                ? null
+                : response.user_email;
+
             return {
                 ...response,
+                user_name: userName,
+                user_email: userEmail,
                 answers,
             };
         });
@@ -282,7 +299,7 @@ const getResponseDetails = async (req, res, next) => {
         const isAdmin = req.user.role === 'admin';
 
         const responseResult = await pool.query(
-            `SELECT r.id, r.survey_id, r.user_id, u.name, u.email, s.title AS survey_title, r.submitted_at
+            `SELECT r.id, r.survey_id, r.user_id, u.name, u.email, s.title AS survey_title, s.is_anonymous, s.collect_email, r.submitted_at
              FROM responses r
              LEFT JOIN users u ON r.user_id = u.id
              JOIN surveys s ON r.survey_id = s.id
@@ -315,6 +332,12 @@ const getResponseDetails = async (req, res, next) => {
         );
 
         const response = responseResult.rows[0];
+        if (response.is_anonymous) {
+            response.name = null;
+            response.email = null;
+        } else if (!response.collect_email) {
+            response.email = null;
+        }
         const answersMap = new Map();
 
         for (const row of answersResult.rows) {

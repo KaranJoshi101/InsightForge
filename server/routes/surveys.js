@@ -17,6 +17,10 @@ const {
     updateOption,
     deleteOption,
     uploadSurveyEmailAttachments,
+    autosaveSurvey,
+    updateSurveySettings,
+    checkUserSubmission,
+    getSurveyResponses,
 } = require('../controllers/surveyController');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validateRequest } = require('../middleware/validateRequest');
@@ -49,7 +53,7 @@ const upload = multer({
 
 // Public routes
 router.get('/', paginationQuery, validateRequest, getAllSurveys);
-router.get('/:id', idParam('id'), validateRequest, getSurveyById);
+router.get('/:id', getSurveyById);
 
 // Admin routes (protected)
 router.post('/email-attachments', authenticate, authorize, upload.array('files', 10), uploadSurveyEmailAttachments);
@@ -64,5 +68,11 @@ router.put('/questions/:questionId', authenticate, authorize, idParam('questionI
 router.delete('/questions/:questionId', authenticate, authorize, idParam('questionId'), validateRequest, deleteQuestion);
 router.put('/questions/options/:optionId', authenticate, authorize, idParam('optionId'), validateRequest, updateOption);
 router.delete('/questions/options/:optionId', authenticate, authorize, idParam('optionId'), validateRequest, deleteOption);
+
+// Advanced survey features
+router.put('/:id/autosave', authenticate, authorize, idParam('id'), validateRequest, autosaveSurvey);
+router.put('/:id/settings', authenticate, authorize, idParam('id'), validateRequest, updateSurveySettings);
+router.get('/:id/responses', authenticate, authorize, idParam('id'), getSurveyResponses);
+router.get('/:id/user-submission', authenticate, idParam('id'), checkUserSubmission);
 
 module.exports = router;

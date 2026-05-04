@@ -1,0 +1,182 @@
+.question-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.question-card.dragging {
+    opacity: 0.6;
+    background: #f5f5f5;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.question-card.expanded {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.question-card-header {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    cursor: grab;
+    user-select: none;
+}
+
+.question-card-header:active {
+    cursor: grabbing;
+}
+
+.question-card-drag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 12px;
+    color: #999;
+}
+
+.drag-handle {
+    cursor: grab;
+    font-size: 14px;
+}
+
+.question-number {
+    font-weight: 600;
+    color: #666;
+    min-width: 35px;
+}
+
+.question-card-preview {
+    flex: 1;
+    min-width: 0;
+}
+
+.preview-text {
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+}
+
+.preview-type {
+    font-size: 12px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.question-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 12px;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 8px;
+    color: #666;
+    font-size: 14px;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover:not(:disabled) {
+    color: #333;
+}
+
+.action-btn.delete-btn:hover:not(:disabled) {
+    color: #ef4444;
+}
+
+.action-btn.copy-btn:hover {
+    color: #0ea5e9;
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.question-card-content {
+    padding: 12px;
+    border-top: 1px solid #e0e0e0;
+    background: #fafafa;
+}
+
+.card-section {
+    margin-bottom: 12px;
+}
+
+.card-section:last-child {
+    margin-bottom: 0;
+}
+
+.card-section label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.card-section p {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.options-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.options-list li {
+    padding: 4px 0;
+    font-size: 13px;
+    color: #555;
+}
+
+.options-list li::before {
+    content: '• ';
+    color: #999;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary {
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #f9f9f9;
+    border-color: #999;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

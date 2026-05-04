@@ -1,0 +1,37 @@
+{
+  "name": "insightforge",
+  "version": "1.0.0",
+  "description": "InsightForge - PERN Stack",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "smoke": "node scripts/smoke-test.js",
+    "start": "cd server && npm start",
+    "start:server": "cd server && npm start",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:restart": "pm2 restart insightforge-api --update-env",
+    "pm2:stop": "pm2 stop insightforge-api",
+    "db:init": "cd server && npm run db:init",
+    "db:sync:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/db-sync-local-to-production.ps1",
+    "seed:consulting": "node server/scripts/seed_consulting_requests_and_events.js",
+    "verify:consulting-seed": "node server/scripts/verify_consulting_seed.js",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "postinstall": "cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": [
+    "survey",
+    "pern",
+    "postgresql",
+    "express",
+    "react",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.0.1"
+  }
+}

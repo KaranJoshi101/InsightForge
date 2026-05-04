@@ -87,3 +87,24 @@ Optional environment variables for login probe:
 - `SMOKE_API_BASE`
 - `SMOKE_USER_EMAIL`
 - `SMOKE_USER_PASSWORD`
+
+---
+
+## Handoff package (what to include when sending to deployer)
+
+When preparing a deployment bundle to hand off to an operations team, include these artifacts:
+
+- Frontend: either the `client/build/` directory (prebuilt static files) or the full `client/` source plus `client/package.json` if they will build on target.
+- Backend: the `server/` folder and root-level start files (`package.json`, `ecosystem.config.js`) and any process manager configs.
+- Env: a production `.env` file with actual values (supply separately over a secure channel). Do NOT commit production secrets to git.
+- Database: a MySQL-compatible `dump.sql` plus `database/migrations/` and `database/seeds/` if available.
+- Documentation: `docs/DEPLOYMENT.md`, `docs/ENV_SETUP_QUICKSTART.md` and any runbooks or health-check instructions.
+
+Include instructions for:
+
+- How to restore the database (MySQL commands).
+- How to build the frontend (`npm ci && npm run build` in `client/`).
+- How to start the backend (`npm ci` then `npm start` or `pm2 start ecosystem.config.js`).
+- Health checks to validate a successful deployment: `GET /api/health` should return `{ status: 'OK' }`.
+
+Security note: transfer the real `.env` and any DB dumps over an encrypted channel (SFTP, PGP-encrypted archive, or a secrets manager). If you need, provide a separate encrypted archive for sensitive files and a README with decryption instructions.

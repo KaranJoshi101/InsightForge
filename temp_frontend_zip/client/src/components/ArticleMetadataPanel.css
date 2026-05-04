@@ -1,0 +1,139 @@
+.article-metadata-panel {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.metadata-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.metadata-field {
+    margin-bottom: 16px;
+}
+
+.metadata-field:last-child {
+    margin-bottom: 0;
+}
+
+.metadata-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.metadata-field input[type='text'],
+.metadata-field textarea {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.metadata-field input:focus,
+.metadata-field textarea:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.metadata-field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.char-count {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: #666;
+}
+
+.slug-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.slug-input-group input {
+    flex: 1;
+}
+
+.slug-auto-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.slug-auto-btn:hover {
+    background: #e8e8e8;
+    border-color: #999;
+}
+
+.slug-preview {
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: #0ea5e9;
+}
+
+.field-help {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: #666;
+}
+
+.metadata-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+    padding: 12px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.checkbox-field label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.checkbox-field input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #0ea5e9;
+}

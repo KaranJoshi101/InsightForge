@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const ytpl = require('ytpl');
 const path = require('path');
+const trainingModel = require('../models/trainingModel');
 
 const clamp = (value, min, max, fallback) => {
     const parsed = parseInt(value, 10);
@@ -259,19 +260,8 @@ const getPublicTrainingVideos = async (req, res, next) => {
     try {
         const limit = clamp(req.query.limit, 1, 50, 6);
 
-        const result = await pool.query(
-            `SELECT id, title, description, youtube_id, duration_minutes, display_order
-             FROM training_videos
-             WHERE is_active = true
-             ORDER BY display_order ASC, id DESC
-             LIMIT $1`,
-            [limit]
-        );
-
-        res.json({
-            videos: result.rows.map(mapRow),
-            count: result.rows.length,
-        });
+        const rows = await trainingModel.getPublicTrainingVideos(limit);
+        res.json({ videos: rows.map(mapRow), count: rows.length });
     } catch (err) {
         next(err);
     }
@@ -283,28 +273,8 @@ const getAdminTrainingVideos = async (req, res, next) => {
         const limit = clamp(req.query.limit, 1, 100, 20);
         const offset = (page - 1) * limit;
 
-        const [rowsResult, countResult] = await Promise.all([
-            pool.query(
-                `SELECT id, title, description, youtube_id, duration_minutes, display_order, is_active, created_at, updated_at
-                 FROM training_videos
-                 ORDER BY display_order ASC, created_at DESC
-                 LIMIT $1 OFFSET $2`,
-                [limit, offset]
-            ),
-            pool.query('SELECT COUNT(*)::int AS count FROM training_videos'),
-        ]);
-
-        const total = countResult.rows[0].count;
-
-        res.json({
-            videos: rowsResult.rows.map(mapRow),
-            pagination: {
-                page,
-                limit,
-                total,
-                pages: Math.ceil(total / limit),
-            },
-        });
+        const { rows, total } = await trainingModel.getAdminTrainingVideos(limit, offset);
+        res.json({ videos: rows.map(mapRow), pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
     } catch (err) {
         next(err);
     }
@@ -328,18 +298,8 @@ const createTrainingVideo = async (req, res, next) => {
 
         const parsedOrder = clamp(display_order, 0, 100000, 0);
 
-        const result = await pool.query(
-            `INSERT INTO training_videos
-            (title, description, youtube_id, duration_minutes, display_order, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, title, description, youtube_id, duration_minutes, display_order, is_active, created_at, updated_at`,
-            [metadata.title, metadata.description, parsedYoutubeId, metadata.duration_minutes, parsedOrder, Boolean(is_active)]
-        );
-
-        res.status(201).json({
-            message: 'Training video created successfully',
-            video: mapRow(result.rows[0]),
-        });
+        const created = await trainingModel.createTrainingVideo({ title: metadata.title, description: metadata.description, youtube_id: parsedYoutubeId, duration_minutes: metadata.duration_minutes, display_order: parsedOrder, is_active: Boolean(is_active) });
+        res.status(201).json({ message: 'Training video created successfully', video: mapRow(created) });
     } catch (err) {
         if (err.code === '23505') {
             return res.status(409).json({ error: 'This YouTube video is already added' });
@@ -358,65 +318,26 @@ const updateTrainingVideo = async (req, res, next) => {
             is_active,
         } = req.body;
 
-        const existing = await pool.query('SELECT id FROM training_videos WHERE id = $1', [id]);
-        if (existing.rows.length === 0) {
-            return res.status(404).json({ error: 'Training video not found' });
-        }
+        const existing = await trainingModel.getTrainingVideoById(id);
+        if (!existing) return res.status(404).json({ error: 'Training video not found' });
 
-        const fields = [];
-        const values = [];
-        let idx = 1;
-
+        const updates = {};
         if (typeof youtube_id === 'string' || typeof youtube_url === 'string') {
             const parsedYoutubeId = parseYouTubeId(youtube_id || youtube_url);
-            if (!parsedYoutubeId) {
-                return res.status(400).json({ error: 'Valid YouTube ID or URL is required' });
-            }
-
+            if (!parsedYoutubeId) return res.status(400).json({ error: 'Valid YouTube ID or URL is required' });
             const metadata = await fetchYouTubeMetadata(parsedYoutubeId);
-
-            fields.push(`title = $${idx++}`);
-            values.push(metadata.title);
-
-            fields.push(`description = $${idx++}`);
-            values.push(metadata.description);
-
-            fields.push(`duration_minutes = $${idx++}`);
-            values.push(metadata.duration_minutes);
-
-            fields.push(`youtube_id = $${idx++}`);
-            values.push(parsedYoutubeId);
+            updates.title = metadata.title;
+            updates.description = metadata.description;
+            updates.duration_minutes = metadata.duration_minutes;
+            updates.youtube_id = parsedYoutubeId;
         }
+        if (display_order !== undefined) updates.display_order = clamp(display_order, 0, 100000, 0);
+        if (typeof is_active === 'boolean') updates.is_active = is_active;
 
-        if (display_order !== undefined) {
-            fields.push(`display_order = $${idx++}`);
-            values.push(clamp(display_order, 0, 100000, 0));
-        }
+        if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid fields provided for update' });
 
-        if (typeof is_active === 'boolean') {
-            fields.push(`is_active = $${idx++}`);
-            values.push(is_active);
-        }
-
-        if (fields.length === 0) {
-            return res.status(400).json({ error: 'No valid fields provided for update' });
-        }
-
-        fields.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(id);
-
-        const result = await pool.query(
-            `UPDATE training_videos
-             SET ${fields.join(', ')}
-             WHERE id = $${idx}
-             RETURNING id, title, description, youtube_id, duration_minutes, display_order, is_active, created_at, updated_at`,
-            values
-        );
-
-        res.json({
-            message: 'Training video updated successfully',
-            video: mapRow(result.rows[0]),
-        });
+        const updated = await trainingModel.updateTrainingVideoDynamic(id, updates);
+        res.json({ message: 'Training video updated successfully', video: mapRow(updated) });
     } catch (err) {
         if (err.code === '23505') {
             return res.status(409).json({ error: 'This YouTube video is already added' });
@@ -429,15 +350,8 @@ const deleteTrainingVideo = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query(
-            'DELETE FROM training_videos WHERE id = $1 RETURNING id',
-            [id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Training video not found' });
-        }
-
+        const deleted = await trainingModel.deleteTrainingVideo(id);
+        if (!deleted) return res.status(404).json({ error: 'Training video not found' });
         res.json({ message: 'Training video deleted successfully' });
     } catch (err) {
         next(err);
@@ -459,17 +373,8 @@ const mapPlaylistRow = (row) => ({
 
 const getPublicPlaylists = async (req, res, next) => {
     try {
-        const result = await pool.query(
-            `SELECT id, category_id, name, description, display_order
-             FROM training_playlists
-             WHERE is_active = true
-             ORDER BY display_order ASC, id DESC`
-        );
-
-        res.json({
-            playlists: result.rows.map(mapPlaylistRow),
-            count: result.rows.length,
-        });
+        const rows = await trainingModel.getPublicPlaylists();
+        res.json({ playlists: rows.map(mapPlaylistRow), count: rows.length });
     } catch (err) {
         next(err);
     }
@@ -481,28 +386,8 @@ const getAdminPlaylists = async (req, res, next) => {
         const limit = clamp(req.query.limit, 1, 100, 20);
         const offset = (page - 1) * limit;
 
-        const [rowsResult, countResult] = await Promise.all([
-            pool.query(
-                `SELECT id, category_id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at
-                 FROM training_playlists
-                 ORDER BY display_order ASC, created_at DESC
-                 LIMIT $1 OFFSET $2`,
-                [limit, offset]
-            ),
-            pool.query('SELECT COUNT(*)::int AS count FROM training_playlists'),
-        ]);
-
-        const total = countResult.rows[0].count;
-
-        res.json({
-            playlists: rowsResult.rows.map(mapPlaylistRow),
-            pagination: {
-                page,
-                limit,
-                total,
-                pages: Math.ceil(total / limit),
-            },
-        });
+        const { rows, total } = await trainingModel.getAdminPlaylists(limit, offset);
+        res.json({ playlists: rows.map(mapPlaylistRow), pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
     } catch (err) {
         next(err);
     }
@@ -512,34 +397,10 @@ const getPlaylistItems = async (req, res, next) => {
     try {
         const { playlistId } = req.params;
 
-        const playlistResult = await pool.query(
-            'SELECT id, category_id, name, description FROM training_playlists WHERE id = $1',
-            [playlistId]
-        );
-
-        if (playlistResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Playlist not found' });
-        }
-
-        const itemsResult = await pool.query(
-            `SELECT pi.id, pi.video_id, pi.order_index, tv.title, tv.description, tv.youtube_id, tv.duration_minutes
-             FROM playlist_items pi
-             JOIN training_videos tv ON pi.video_id = tv.id
-             WHERE pi.playlist_id = $1
-             ORDER BY pi.order_index ASC`,
-            [playlistId]
-        );
-
-        res.json({
-            playlist: {
-                id: playlistResult.rows[0].id,
-                category_id: playlistResult.rows[0].category_id,
-                name: playlistResult.rows[0].name,
-                description: playlistResult.rows[0].description,
-            },
-            items: itemsResult.rows,
-            count: itemsResult.rows.length,
-        });
+        const playlist = await trainingModel.getPlaylistById(playlistId);
+        if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+        const items = await trainingModel.getPlaylistItems(playlistId);
+        res.json({ playlist: { id: playlist.id, category_id: playlist.category_id, name: playlist.name, description: playlist.description }, items, count: items.length });
     } catch (err) {
         next(err);
     }
@@ -561,8 +422,8 @@ const createPlaylist = async (req, res, next) => {
         }
 
         if (categoryId) {
-            const categoryCheck = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
-            if (categoryCheck.rows.length === 0) {
+            const categoryCheck = await trainingModel.getTrainingCategoryById(categoryId);
+            if (!categoryCheck) {
                 return res.status(404).json({ error: 'Training category not found' });
             }
         }
@@ -572,12 +433,8 @@ const createPlaylist = async (req, res, next) => {
             return res.status(400).json({ error: 'Invalid YouTube playlist URL' });
         }
 
-        const existingPlaylist = await pool.query(
-            'SELECT id FROM training_playlists WHERE youtube_playlist_url = $1 LIMIT 1',
-            [normalizedUrl]
-        );
-
-        if (existingPlaylist.rows.length > 0) {
+        const existingPlaylist = await trainingModel.getPlaylistByUrl(normalizedUrl);
+        if (existingPlaylist) {
             return res.status(409).json({ error: 'This YouTube playlist is already imported' });
         }
 
@@ -600,48 +457,15 @@ const createPlaylist = async (req, res, next) => {
 
         try {
             await client.query('BEGIN');
-
-            const playlistResult = await client.query(
-                `INSERT INTO training_playlists (category_id, name, description, youtube_playlist_url, display_order, is_active)
-                 VALUES ($1, $2, $3, $4, 0, true)
-                 RETURNING id, category_id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at`,
-                [categoryId, playlistName, playlistDescription, normalizedUrl]
-            );
-
-            const createdPlaylist = playlistResult.rows[0];
-
+            const createdPlaylist = await trainingModel.insertPlaylist(categoryId, playlistName, playlistDescription, normalizedUrl, client);
             for (let i = 0; i < playlistData.videoIds.length; i += 1) {
                 const youtubeId = playlistData.videoIds[i];
                 const metadata = await fetchYouTubeMetadata(youtubeId);
-
-                const videoResult = await client.query(
-                    `INSERT INTO training_videos (title, description, youtube_id, duration_minutes, display_order, is_active)
-                     VALUES ($1, $2, $3, $4, 0, true)
-                     ON CONFLICT (youtube_id)
-                     DO UPDATE SET
-                         title = EXCLUDED.title,
-                         description = COALESCE(EXCLUDED.description, training_videos.description),
-                         duration_minutes = COALESCE(EXCLUDED.duration_minutes, training_videos.duration_minutes),
-                         updated_at = CURRENT_TIMESTAMP
-                     RETURNING id`,
-                    [metadata.title, metadata.description, youtubeId, metadata.duration_minutes]
-                );
-
-                await client.query(
-                    `INSERT INTO playlist_items (playlist_id, video_id, order_index)
-                     VALUES ($1, $2, $3)
-                     ON CONFLICT (playlist_id, video_id) DO NOTHING`,
-                    [createdPlaylist.id, videoResult.rows[0].id, i]
-                );
+                const video = await trainingModel.upsertTrainingVideo(client, metadata, youtubeId);
+                await trainingModel.insertPlaylistItem(client, createdPlaylist.id, video.id, i);
             }
-
             await client.query('COMMIT');
-
-            res.status(201).json({
-                message: 'Playlist imported successfully',
-                playlist: mapPlaylistRow(createdPlaylist),
-                imported_videos_count: playlistData.videoIds.length,
-            });
+            res.status(201).json({ message: 'Playlist imported successfully', playlist: mapPlaylistRow(createdPlaylist), imported_videos_count: playlistData.videoIds.length });
         } catch (dbErr) {
             await client.query('ROLLBACK');
             throw dbErr;
@@ -660,64 +484,27 @@ const updatePlaylist = async (req, res, next) => {
         const { id } = req.params;
         const { name, description, category_id } = req.body;
 
-        const existing = await pool.query('SELECT id FROM training_playlists WHERE id = $1', [id]);
-        if (existing.rows.length === 0) {
-            return res.status(404).json({ error: 'Playlist not found' });
-        }
+        const existing = await trainingModel.getPlaylistById(id);
+        if (!existing) return res.status(404).json({ error: 'Playlist not found' });
 
-        const fields = [];
-        const values = [];
-        let idx = 1;
-
-        if (typeof name === 'string' && name.trim()) {
-            fields.push(`name = $${idx++}`);
-            values.push(name.trim());
-        }
-
-        if (typeof description === 'string' || description === null) {
-            fields.push(`description = $${idx++}`);
-            values.push(description);
-        }
-
+        const fields = {};
+        if (typeof name === 'string' && name.trim()) fields.name = name.trim();
+        if (typeof description === 'string' || description === null) fields.description = description;
         if (category_id !== undefined) {
-            if (category_id === null || category_id === '') {
-                fields.push(`category_id = $${idx++}`);
-                values.push(null);
-            } else {
+            if (category_id === null || category_id === '') fields.category_id = null;
+            else {
                 const categoryId = clamp(category_id, 1, 10000000, null);
-                if (!categoryId) {
-                    return res.status(400).json({ error: 'category_id must be a positive integer' });
-                }
-
-                const categoryCheck = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
-                if (categoryCheck.rows.length === 0) {
-                    return res.status(404).json({ error: 'Training category not found' });
-                }
-
-                fields.push(`category_id = $${idx++}`);
-                values.push(categoryId);
+                if (!categoryId) return res.status(400).json({ error: 'category_id must be a positive integer' });
+                const categoryCheck = await trainingModel.getTrainingCategoryById(categoryId);
+                if (!categoryCheck) return res.status(404).json({ error: 'Training category not found' });
+                fields.category_id = categoryId;
             }
         }
 
-        if (fields.length === 0) {
-            return res.status(400).json({ error: 'No valid fields provided for update' });
-        }
+        if (Object.keys(fields).length === 0) return res.status(400).json({ error: 'No valid fields provided for update' });
 
-        fields.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(id);
-
-        const result = await pool.query(
-            `UPDATE training_playlists
-             SET ${fields.join(', ')}
-             WHERE id = $${idx}
-             RETURNING id, category_id, name, description, display_order, is_active, youtube_playlist_url, created_at, updated_at`,
-            values
-        );
-
-        res.json({
-            message: 'Playlist updated successfully',
-            playlist: mapPlaylistRow(result.rows[0]),
-        });
+        const updated = await trainingModel.updatePlaylist(id, fields);
+        res.json({ message: 'Playlist updated successfully', playlist: mapPlaylistRow(updated) });
     } catch (err) {
         next(err);
     }
@@ -731,52 +518,13 @@ const deletePlaylist = async (req, res, next) => {
         try {
             await client.query('BEGIN');
 
-            const existing = await client.query(
-                'SELECT id FROM training_playlists WHERE id = $1',
-                [id]
-            );
-
-            if (existing.rows.length === 0) {
+            const result = await trainingModel.deletePlaylistCascade(client, id);
+            if (result.notFound) {
                 await client.query('ROLLBACK');
                 return res.status(404).json({ error: 'Playlist not found' });
             }
-
-            // Get video IDs from this playlist
-            const videoIdsResult = await client.query(
-                'SELECT DISTINCT video_id FROM playlist_items WHERE playlist_id = $1',
-                [id]
-            );
-            const videoIds = videoIdsResult.rows.map((row) => row.video_id);
-
-            // Delete playlist_items for this playlist first
-            await client.query('DELETE FROM playlist_items WHERE playlist_id = $1', [id]);
-
-            // Delete the playlist
-            await client.query('DELETE FROM training_playlists WHERE id = $1', [id]);
-
-            // Delete orphan videos (videos not in ANY remaining playlist_items)
-            let deletedOrphanVideos = 0;
-            if (videoIds.length > 0) {
-                const orphanDeleteResult = await client.query(
-                    `DELETE FROM training_videos tv
-                     WHERE tv.id = ANY($1::int[])
-                       AND NOT EXISTS (
-                           SELECT 1
-                           FROM playlist_items pi
-                           WHERE pi.video_id = tv.id
-                       )
-                     RETURNING id`,
-                    [videoIds]
-                );
-                deletedOrphanVideos = orphanDeleteResult.rowCount;
-            }
-
             await client.query('COMMIT');
-
-            res.json({
-                message: 'Playlist deleted successfully',
-                deleted_orphan_videos: deletedOrphanVideos,
-            });
+            res.json({ message: 'Playlist deleted successfully', deleted_orphan_videos: result.deletedOrphanVideos });
         } catch (dbErr) {
             await client.query('ROLLBACK');
             throw dbErr;
@@ -797,29 +545,12 @@ const addVideoToPlaylist = async (req, res, next) => {
             return res.status(400).json({ error: 'video_id is required' });
         }
 
-        // Verify playlist exists
-        const playlistCheck = await pool.query('SELECT id FROM training_playlists WHERE id = $1', [playlistId]);
-        if (playlistCheck.rows.length === 0) {
-            return res.status(404).json({ error: 'Playlist not found' });
-        }
-
-        // Verify video exists
-        const videoCheck = await pool.query('SELECT id FROM training_videos WHERE id = $1', [video_id]);
-        if (videoCheck.rows.length === 0) {
-            return res.status(404).json({ error: 'Video not found' });
-        }
-
-        const result = await pool.query(
-            `INSERT INTO playlist_items (playlist_id, video_id, order_index)
-             VALUES ($1, $2, $3)
-             RETURNING id, playlist_id, video_id, order_index, created_at`,
-            [playlistId, video_id, clamp(order_index, 0, 100000, 0)]
-        );
-
-        res.status(201).json({
-            message: 'Video added to playlist',
-            item: result.rows[0],
-        });
+        const playlist = await trainingModel.getPlaylistById(playlistId);
+        if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+        const videoExists = await trainingModel.getTrainingVideoById(video_id);
+        if (!videoExists) return res.status(404).json({ error: 'Video not found' });
+        const item = await trainingModel.addPlaylistItem(playlistId, video_id, clamp(order_index, 0, 100000, 0));
+        res.status(201).json({ message: 'Video added to playlist', item });
     } catch (err) {
         if (err.code === '23505') {
             return res.status(409).json({ error: 'This video is already in the playlist' });
@@ -832,15 +563,8 @@ const removeVideoFromPlaylist = async (req, res, next) => {
     try {
         const { playlistId, itemId } = req.params;
 
-        const result = await pool.query(
-            'DELETE FROM playlist_items WHERE id = $1 AND playlist_id = $2 RETURNING id',
-            [itemId, playlistId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Playlist item not found' });
-        }
-
+        const removed = await trainingModel.removePlaylistItem(itemId, playlistId);
+        if (!removed) return res.status(404).json({ error: 'Playlist item not found' });
         res.json({ message: 'Video removed from playlist' });
     } catch (err) {
         next(err);
@@ -856,22 +580,9 @@ const updatePlaylistItemOrder = async (req, res, next) => {
             return res.status(400).json({ error: 'order_index is required' });
         }
 
-        const result = await pool.query(
-            `UPDATE playlist_items
-             SET order_index = $1, updated_at = CURRENT_TIMESTAMP
-             WHERE id = $2 AND playlist_id = $3
-             RETURNING id, playlist_id, video_id, order_index, created_at, updated_at`,
-            [clamp(order_index, 0, 100000, 0), itemId, playlistId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Playlist item not found' });
-        }
-
-        res.json({
-            message: 'Playlist item order updated',
-            item: result.rows[0],
-        });
+        const item = await trainingModel.updatePlaylistItemOrder(itemId, playlistId, clamp(order_index, 0, 100000, 0));
+        if (!item) return res.status(404).json({ error: 'Playlist item not found' });
+        res.json({ message: 'Playlist item order updated', item });
     } catch (err) {
         next(err);
     }
@@ -900,32 +611,9 @@ const mapNoteRow = (row) => ({
 
 const getPublicTrainingCategories = async (req, res, next) => {
     try {
-        const [categoriesResult, playlistsResult, notesResult] = await Promise.all([
-            pool.query(
-                `SELECT id, name, description, display_order, is_active, created_at, updated_at
-                 FROM training_categories
-                 WHERE is_active = true
-                 ORDER BY display_order ASC, id ASC`
-            ),
-            pool.query(
-                `SELECT tp.id, tp.category_id, tp.name, tp.description, tp.display_order, tp.is_active,
-                        tp.youtube_playlist_url, tp.created_at, tp.updated_at,
-                        COUNT(pi.id)::int AS video_count
-                 FROM training_playlists tp
-                 LEFT JOIN playlist_items pi ON pi.playlist_id = tp.id
-                 WHERE tp.is_active = true
-                 GROUP BY tp.id
-                 ORDER BY tp.display_order ASC, tp.id ASC`
-            ),
-            pool.query(
-                `SELECT id, category_id, title, document_url, display_order, is_active, created_at, updated_at
-                 FROM training_notes
-                 WHERE is_active = true
-                 ORDER BY display_order ASC, id ASC`
-            ),
-        ]);
+        const { categories: categoryRows, playlists: playlistRows, notes: noteRows } = await trainingModel.getPublicTrainingCategories();
 
-        const categories = categoriesResult.rows.map((row) => ({
+        const categories = categoryRows.map((row) => ({
             ...mapCategoryRow(row),
             playlists: [],
             notes: [],
@@ -942,7 +630,7 @@ const getPublicTrainingCategories = async (req, res, next) => {
             notes: [],
         };
 
-        playlistsResult.rows.forEach((row) => {
+        playlistRows.forEach((row) => {
             const payload = {
                 ...mapPlaylistRow(row),
                 video_count: row.video_count,
@@ -954,7 +642,7 @@ const getPublicTrainingCategories = async (req, res, next) => {
             }
         });
 
-        notesResult.rows.forEach((row) => {
+        noteRows.forEach((row) => {
             const category = byId.get(row.category_id);
             if (category) {
                 category.notes.push(mapNoteRow(row));
@@ -977,15 +665,11 @@ const getPublicTrainingCategories = async (req, res, next) => {
 
 const getAdminTrainingCategories = async (req, res, next) => {
     try {
-        const result = await pool.query(
-            `SELECT id, name, description, display_order, is_active, created_at, updated_at
-             FROM training_categories
-             ORDER BY display_order ASC, id ASC`
-        );
+        const rows = await trainingModel.getAdminTrainingCategories();
 
         res.json({
-            categories: result.rows.map(mapCategoryRow),
-            count: result.rows.length,
+            categories: rows.map(mapCategoryRow),
+            count: rows.length,
         });
     } catch (err) {
         next(err);
@@ -999,21 +683,16 @@ const createTrainingCategory = async (req, res, next) => {
             return res.status(400).json({ error: 'Category name is required' });
         }
 
-        const result = await pool.query(
-            `INSERT INTO training_categories (name, description, display_order, is_active)
-             VALUES ($1, $2, $3, $4)
-             RETURNING id, name, description, display_order, is_active, created_at, updated_at`,
-            [
-                String(name).trim().slice(0, 255),
-                typeof description === 'string' ? description.trim().slice(0, 2000) || null : null,
-                clamp(display_order, 0, 100000, 0),
-                Boolean(is_active),
-            ]
-        );
+        const category = await trainingModel.createTrainingCategory({
+            name: String(name).trim().slice(0, 255),
+            description: typeof description === 'string' ? description.trim().slice(0, 2000) || null : null,
+            display_order: clamp(display_order, 0, 100000, 0),
+            is_active: Boolean(is_active),
+        });
 
         res.status(201).json({
             message: 'Training category created successfully',
-            category: mapCategoryRow(result.rows[0]),
+            category: mapCategoryRow(category),
         });
     } catch (err) {
         if (err.code === '23505') {
@@ -1028,53 +707,37 @@ const updateTrainingCategory = async (req, res, next) => {
         const { id } = req.params;
         const { name, description, display_order, is_active } = req.body;
 
-        const existing = await pool.query('SELECT id FROM training_categories WHERE id = $1', [id]);
-        if (existing.rows.length === 0) {
+        const existing = await trainingModel.getTrainingCategoryById(id);
+        if (!existing) {
             return res.status(404).json({ error: 'Training category not found' });
         }
 
-        const fields = [];
-        const values = [];
-        let idx = 1;
+        const fields = {};
 
         if (typeof name === 'string' && name.trim()) {
-            fields.push(`name = $${idx++}`);
-            values.push(name.trim().slice(0, 255));
+            fields.name = name.trim().slice(0, 255);
         }
 
         if (typeof description === 'string' || description === null) {
-            fields.push(`description = $${idx++}`);
-            values.push(description === null ? null : description.trim().slice(0, 2000));
+            fields.description = description === null ? null : description.trim().slice(0, 2000);
         }
 
         if (display_order !== undefined) {
-            fields.push(`display_order = $${idx++}`);
-            values.push(clamp(display_order, 0, 100000, 0));
+            fields.display_order = clamp(display_order, 0, 100000, 0);
         }
 
         if (typeof is_active === 'boolean') {
-            fields.push(`is_active = $${idx++}`);
-            values.push(is_active);
+            fields.is_active = is_active;
         }
 
-        if (fields.length === 0) {
+        if (Object.keys(fields).length === 0) {
             return res.status(400).json({ error: 'No valid fields provided for update' });
         }
-
-        fields.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(id);
-
-        const result = await pool.query(
-            `UPDATE training_categories
-             SET ${fields.join(', ')}
-             WHERE id = $${idx}
-             RETURNING id, name, description, display_order, is_active, created_at, updated_at`,
-            values
-        );
+        const category = await trainingModel.updateTrainingCategory(id, fields);
 
         res.json({
             message: 'Training category updated successfully',
-            category: mapCategoryRow(result.rows[0]),
+            category: mapCategoryRow(category),
         });
     } catch (err) {
         if (err.code === '23505') {
@@ -1088,12 +751,12 @@ const deleteTrainingCategory = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const existing = await pool.query('SELECT id FROM training_categories WHERE id = $1', [id]);
-        if (existing.rows.length === 0) {
+        const existing = await trainingModel.getTrainingCategoryById(id);
+        if (!existing) {
             return res.status(404).json({ error: 'Training category not found' });
         }
 
-        await pool.query('DELETE FROM training_categories WHERE id = $1', [id]);
+        await trainingModel.deleteTrainingCategory(id);
 
         res.json({ message: 'Training category deleted successfully' });
     } catch (err) {
@@ -1106,26 +769,15 @@ const getCategoryNotes = async (req, res, next) => {
         const { categoryId } = req.params;
         const onlyActive = !req.path.includes('/admin/');
 
-        const category = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
-        if (category.rows.length === 0) {
+        const category = await trainingModel.getTrainingCategoryById(categoryId);
+        if (!category) {
             return res.status(404).json({ error: 'Training category not found' });
         }
-
-          const query = onlyActive
-                ? `SELECT id, category_id, title, document_url, display_order, is_active, created_at, updated_at
-                    FROM training_notes
-                    WHERE category_id = $1 AND is_active = true
-                    ORDER BY display_order ASC, id ASC`
-                : `SELECT id, category_id, title, document_url, display_order, is_active, created_at, updated_at
-                    FROM training_notes
-                    WHERE category_id = $1
-                    ORDER BY display_order ASC, id ASC`;
-
-        const result = await pool.query(query, [categoryId]);
+        const notes = await trainingModel.getCategoryNotes(categoryId, onlyActive);
 
         res.json({
-            notes: result.rows.map(mapNoteRow),
-            count: result.rows.length,
+            notes: notes.map(mapNoteRow),
+            count: notes.length,
         });
     } catch (err) {
         next(err);
@@ -1159,29 +811,22 @@ const createCategoryNote = async (req, res, next) => {
             return res.status(400).json({ error: 'Provide a document URL' });
         }
 
-        const category = await pool.query('SELECT id FROM training_categories WHERE id = $1', [categoryId]);
-        if (category.rows.length === 0) {
+        const category = await trainingModel.getTrainingCategoryById(categoryId);
+        if (!category) {
             return res.status(404).json({ error: 'Training category not found' });
         }
+        const note = await trainingModel.createCategoryNote(categoryId, {
+            title: safeTitle.slice(0, 255),
+            document_url: safeDocumentUrl ? safeDocumentUrl.slice(0, 1000) : null,
+            display_order: clamp(display_order, 0, 100000, 0),
+            is_active: Boolean(is_active),
+        });
 
-        const result = await pool.query(
-            `INSERT INTO training_notes (category_id, title, document_url, display_order, is_active)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, category_id, title, document_url, display_order, is_active, created_at, updated_at`,
-            [
-                categoryId,
-                safeTitle.slice(0, 255),
-                safeDocumentUrl ? safeDocumentUrl.slice(0, 1000) : null,
-                clamp(display_order, 0, 100000, 0),
-                Boolean(is_active),
-            ]
-        );
-
-        console.log('CREATE NOTE - Inserted row:', result.rows[0]);
+        console.log('CREATE NOTE - Inserted row:', note);
 
         res.status(201).json({
             message: 'Category note created successfully',
-            note: mapNoteRow(result.rows[0]),
+            note: mapNoteRow(note),
         });
     } catch (err) {
         next(err);
@@ -1193,41 +838,35 @@ const updateCategoryNote = async (req, res, next) => {
         const { id } = req.params;
         const { title, document_url, display_order, is_active } = req.body;
 
-        const existing = await pool.query('SELECT id FROM training_notes WHERE id = $1', [id]);
-        if (existing.rows.length === 0) {
+        const existing = await trainingModel.getTrainingNoteById(id);
+        if (!existing) {
             return res.status(404).json({ error: 'Training note not found' });
         }
 
-        const fields = [];
-        const values = [];
-        let idx = 1;
+        const fields = {};
 
         if (typeof title === 'string') {
             const safeTitle = title.trim();
             if (!safeTitle) {
                 return res.status(400).json({ error: 'Note title cannot be empty' });
             }
-            fields.push(`title = $${idx++}`);
-            values.push(safeTitle.slice(0, 255));
+            fields.title = safeTitle.slice(0, 255);
         }
 
 
         if (typeof document_url === 'string' || document_url === null) {
-            fields.push(`document_url = $${idx++}`);
-            values.push(document_url === null ? null : document_url.trim().slice(0, 1000));
+            fields.document_url = document_url === null ? null : document_url.trim().slice(0, 1000);
         }
 
         if (display_order !== undefined) {
-            fields.push(`display_order = $${idx++}`);
-            values.push(clamp(display_order, 0, 100000, 0));
+            fields.display_order = clamp(display_order, 0, 100000, 0);
         }
 
         if (typeof is_active === 'boolean') {
-            fields.push(`is_active = $${idx++}`);
-            values.push(is_active);
+            fields.is_active = is_active;
         }
 
-        if (fields.length === 0) {
+        if (Object.keys(fields).length === 0) {
             return res.status(400).json({ error: 'No valid fields provided for update' });
         }
 
@@ -1242,20 +881,11 @@ const updateCategoryNote = async (req, res, next) => {
             }
         }
 
-        fields.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(id);
-
-        const result = await pool.query(
-            `UPDATE training_notes
-             SET ${fields.join(', ')}
-             WHERE id = $${idx}
-             RETURNING id, category_id, title, document_url, display_order, is_active, created_at, updated_at`,
-            values
-        );
+        const note = await trainingModel.updateCategoryNote(id, fields);
 
         res.json({
             message: 'Category note updated successfully',
-            note: mapNoteRow(result.rows[0]),
+            note: mapNoteRow(note),
         });
     } catch (err) {
         next(err);
@@ -1266,8 +896,8 @@ const deleteCategoryNote = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query('DELETE FROM training_notes WHERE id = $1 RETURNING id', [id]);
-        if (result.rows.length === 0) {
+        const result = await trainingModel.deleteCategoryNote(id);
+        if (!result) {
             return res.status(404).json({ error: 'Training note not found' });
         }
 

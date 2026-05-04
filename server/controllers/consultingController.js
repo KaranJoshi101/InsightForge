@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const consultingModel = require('../models/consultingModel');
 
 const clamp = (value, min, max, fallback) => {
     const parsed = Number.parseInt(value, 10);
@@ -77,17 +78,8 @@ const mapService = (row) => ({
 
 const getConsultingServices = async (_req, res, next) => {
     try {
-        const result = await pool.query(
-            `SELECT id, title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active, created_at, updated_at
-             FROM consulting_services
-             WHERE is_active = true
-             ORDER BY title ASC`
-        );
-
-        res.json({
-            services: result.rows.map(mapService),
-            count: result.rows.length,
-        });
+        const rows = await consultingModel.findActiveServices();
+        res.json({ services: rows.map(mapService), count: rows.length });
     } catch (err) {
         next(err);
     }
@@ -97,18 +89,9 @@ const getConsultingServiceBySlug = async (req, res, next) => {
     try {
         const { slug } = req.params;
 
-        const result = await pool.query(
-            `SELECT id, title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active, created_at, updated_at
-             FROM consulting_services
-             WHERE slug = $1 AND is_active = true`,
-            [slug]
-        );
-
-        if (!result.rows.length) {
-            return res.status(404).json({ error: 'Consulting service not found' });
-        }
-
-        return res.json({ service: mapService(result.rows[0]) });
+        const service = await consultingModel.getServiceBySlug(slug);
+        if (!service) return res.status(404).json({ error: 'Consulting service not found' });
+        return res.json({ service: mapService(service) });
     } catch (err) {
         return next(err);
     }
@@ -136,18 +119,8 @@ const createConsultingService = async (req, res, next) => {
             });
         }
 
-        const result = await pool.query(
-            `INSERT INTO consulting_services
-                (title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active)
-             VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9)
-             RETURNING id, title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active, created_at, updated_at`,
-            [title, slug, shortDescription, heroSubtitle, JSON.stringify(heroBenefits), content, deliverables, targetAudience, isActive]
-        );
-
-        return res.status(201).json({
-            message: 'Consulting service created successfully',
-            service: mapService(result.rows[0]),
-        });
+        const created = await consultingModel.createService({ title, slug, shortDescription, heroSubtitle, heroBenefits, content, deliverables: deliverables || null, targetAudience: targetAudience || null, isActive });
+        return res.status(201).json({ message: 'Consulting service created successfully', service: mapService(created) });
     } catch (err) {
         if (err.code === '23505') {
             return res.status(409).json({ error: 'A service with this slug already exists' });
@@ -160,16 +133,8 @@ const updateConsultingService = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const currentResult = await pool.query(
-            'SELECT id, title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active FROM consulting_services WHERE id = $1',
-            [id]
-        );
-
-        if (!currentResult.rows.length) {
-            return res.status(404).json({ error: 'Consulting service not found' });
-        }
-
-        const current = currentResult.rows[0];
+        const current = await consultingModel.getServiceById(id);
+        if (!current) return res.status(404).json({ error: 'Consulting service not found' });
 
         const title = req.body.title !== undefined ? sanitizeText(req.body.title) : current.title;
         const slug = req.body.slug !== undefined
@@ -201,27 +166,8 @@ const updateConsultingService = async (req, res, next) => {
             });
         }
 
-        const result = await pool.query(
-            `UPDATE consulting_services
-             SET title = $1,
-                 slug = $2,
-                 short_description = $3,
-                 hero_subtitle = $4,
-                 hero_benefits = $5::jsonb,
-                 content = $6,
-                 deliverables = $7,
-                 target_audience = $8,
-                 is_active = $9,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $10
-             RETURNING id, title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active, created_at, updated_at`,
-            [title, slug, shortDescription, heroSubtitle, JSON.stringify(heroBenefits), content, deliverables, targetAudience, isActive, id]
-        );
-
-        return res.json({
-            message: 'Consulting service updated successfully',
-            service: mapService(result.rows[0]),
-        });
+        const updated = await consultingModel.updateService(id, { title, slug, shortDescription, heroSubtitle, heroBenefits, content, deliverables, targetAudience, isActive });
+        return res.json({ message: 'Consulting service updated successfully', service: mapService(updated) });
     } catch (err) {
         if (err.code === '23505') {
             return res.status(409).json({ error: 'A service with this slug already exists' });
@@ -234,12 +180,8 @@ const deleteConsultingService = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query('DELETE FROM consulting_services WHERE id = $1 RETURNING id', [id]);
-
-        if (!result.rows.length) {
-            return res.status(404).json({ error: 'Consulting service not found' });
-        }
-
+        const deleted = await consultingModel.deleteService(id);
+        if (!deleted) return res.status(404).json({ error: 'Consulting service not found' });
         return res.json({ message: 'Consulting service deleted successfully' });
     } catch (err) {
         return next(err);
@@ -254,29 +196,13 @@ const submitConsultingRequest = async (req, res, next) => {
         const message = sanitizeText(req.body.message);
         const userId = req.user?.userId || null;
 
-        const serviceResult = await pool.query(
-            'SELECT id FROM consulting_services WHERE id = $1 AND is_active = true',
-            [serviceId]
-        );
-
-        if (!serviceResult.rows.length) {
-            return res.status(404).json({ error: 'Service not found or inactive' });
-        }
+        const service = await consultingModel.getServiceByIdSimple(serviceId);
+        if (!service) return res.status(404).json({ error: 'Service not found or inactive' });
 
         const fileUrl = req.file ? `/uploads/consulting-requests/${req.file.filename}` : null;
 
-        const result = await pool.query(
-            `INSERT INTO consulting_requests
-                (service_id, user_id, name, email, message, file_url)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING id, service_id, user_id, name, email, message, file_url, created_at`,
-            [serviceId, userId, name, email, message, fileUrl]
-        );
-
-        return res.status(201).json({
-            message: 'Consultation request submitted successfully',
-            request: result.rows[0],
-        });
+        const created = await consultingModel.createRequest({ serviceId, userId, name, email, message, fileUrl });
+        return res.status(201).json({ message: 'Consultation request submitted successfully', request: created });
     } catch (err) {
         return next(err);
     }
@@ -292,29 +218,11 @@ const trackConsultingEvent = async (req, res, next) => {
             ? req.body.metadata
             : null;
 
-        const serviceResult = await pool.query(
-            'SELECT id FROM consulting_services WHERE id = $1 AND is_active = true',
-            [serviceId]
-        );
-
-        if (!serviceResult.rows.length) {
-            return res.status(404).json({ error: 'Service not found or inactive' });
-        }
-
-        const result = await pool.query(
-            `INSERT INTO consulting_events
-                (service_id, event_type, user_id, session_id, metadata)
-             VALUES ($1, $2, $3, $4, $5::jsonb)
-             RETURNING id, service_id, event_type, user_id, session_id, metadata, created_at`,
-            [serviceId, eventType, userId, sessionId, metadata ? JSON.stringify(metadata) : null]
-        );
-
+        const service = await consultingModel.getServiceByIdSimple(serviceId);
+        if (!service) return res.status(404).json({ error: 'Service not found or inactive' });
+        const event = await consultingModel.insertEvent({ serviceId, eventType, userId, sessionId, metadata });
         res.setHeader('x-session-id', sessionId);
-
-        return res.status(201).json({
-            message: 'Event tracked successfully',
-            event: result.rows[0],
-        });
+        return res.status(201).json({ message: 'Event tracked successfully', event });
     } catch (err) {
         return next(err);
     }
@@ -338,91 +246,25 @@ const getConsultingAnalyticsOverview = async (req, res, next) => {
             return '1 = 1';
         };
 
-        const getConsultingCountQuery = (windowPeriod) => {
-            const whereClause = getWindowClause(windowPeriod);
-            return pool.query(
-                `SELECT
-                    COUNT(*) AS views,
-                    COUNT(DISTINCT COALESCE(CONCAT('u:', user_id), CONCAT('s:', NULLIF(session_id, '')), CONCAT('e:', id))) AS unique_views
-                 FROM consulting_events
-                 WHERE event_type = 'view' AND ${whereClause}`
-            );
-        };
+        const [totalsAll, totals7d, totals30d] = await Promise.all([
+            consultingModel.getConsultingCounts(getWindowClause('all')),
+            consultingModel.getConsultingCounts(getWindowClause('7d')),
+            consultingModel.getConsultingCounts(getWindowClause('30d')),
+        ]);
 
-        const getRequestCountQuery = (windowPeriod) => {
-            const whereClause = getWindowClause(windowPeriod);
-            return pool.query(
-                `SELECT COUNT(*) AS requests
-                 FROM consulting_requests
-                 WHERE ${whereClause}`
-            );
-        };
+        const [requestsAll, requests7d, requests30d] = await Promise.all([
+            consultingModel.getRequestCounts(getWindowClause('all')),
+            consultingModel.getRequestCounts(getWindowClause('7d')),
+            consultingModel.getRequestCounts(getWindowClause('30d')),
+        ]);
 
-        const [totalsAll, totals7d, totals30d, requestsAll, requests7d, requests30d, viewedResult, requestedResult, metricsResult, minDayResult, viewsTrendResult, requestsTrendResult] = await Promise.all([
-            getConsultingCountQuery('all'),
-            getConsultingCountQuery('7d'),
-            getConsultingCountQuery('30d'),
-            getRequestCountQuery('all'),
-            getRequestCountQuery('7d'),
-            getRequestCountQuery('30d'),
-            pool.query(
-                `SELECT cs.id, cs.title, cs.slug, COUNT(*) AS views
-                 FROM consulting_events ce
-                 JOIN consulting_services cs ON cs.id = ce.service_id
-                 WHERE ce.event_type = 'view'
-                 GROUP BY cs.id, cs.title, cs.slug
-                 ORDER BY views DESC, cs.title ASC
-                 LIMIT 5`
-            ),
-            pool.query(
-                `SELECT cs.id, cs.title, cs.slug, COUNT(*) AS requests
-                 FROM consulting_requests cr
-                 JOIN consulting_services cs ON cs.id = cr.service_id
-                 GROUP BY cs.id, cs.title, cs.slug
-                 ORDER BY requests DESC, cs.title ASC
-                 LIMIT 5`
-            ),
-            pool.query(
-                `SELECT
-                    cs.id,
-                    cs.title,
-                    cs.slug,
-                    COALESCE(v.views, 0) AS views,
-                    COALESCE(r.requests, 0) AS requests
-                 FROM consulting_services cs
-                 LEFT JOIN (
-                    SELECT service_id, COUNT(*) AS views
-                    FROM consulting_events
-                    WHERE event_type = 'view'
-                    GROUP BY service_id
-                 ) v ON v.service_id = cs.id
-                 LEFT JOIN (
-                    SELECT service_id, COUNT(*) AS requests
-                    FROM consulting_requests
-                    GROUP BY service_id
-                 ) r ON r.service_id = cs.id
-                 ORDER BY cs.title ASC`
-            ),
-            pool.query(
-                `SELECT LEAST(
-                    COALESCE((SELECT MIN(DATE(created_at)) FROM consulting_events WHERE event_type = 'view'), CURDATE()),
-                    COALESCE((SELECT MIN(DATE(created_at)) FROM consulting_requests), CURDATE())
-                 ) AS min_day`
-            ),
-            pool.query(
-                `SELECT DATE(created_at) AS day, COUNT(*) AS views
-                 FROM consulting_events
-                 WHERE event_type = 'view' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-                 GROUP BY DATE(created_at)
-                 ORDER BY DATE(created_at) ASC`
-            ),
-            pool.query(
-                `SELECT DATE(created_at) AS day, COUNT(*) AS requests
-                 FROM consulting_requests
-                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-                 GROUP BY DATE(created_at)
-                 ORDER BY DATE(created_at) ASC`
-            ),
+        const [viewedResult, requestedResult, metricsResult, minDayResult, viewsTrendResult, requestsTrendResult] = await Promise.all([
+            consultingModel.getTopViewedServices(),
+            consultingModel.getTopRequestedServices(),
+            consultingModel.getServiceMetrics(),
+            consultingModel.getMinDay(),
+            consultingModel.getViewsTrend(),
+            consultingModel.getRequestsTrend(),
         ]);
         const totalViews = Number(totalsAll.rows[0]?.views) || 0;
         const totalRequests = Number(requestsAll.rows[0]?.requests) || 0;
@@ -561,68 +403,16 @@ const getConsultingAnalyticsByService = async (req, res, next) => {
         const parsedDays = Number.parseInt(req.query.days, 10);
         const days = parsedDays === 7 ? 7 : 30;
 
-        const serviceResult = await pool.query(
-            'SELECT id, title, slug FROM consulting_services WHERE id = $1',
-            [id]
-        );
+        const service = await consultingModel.getServiceByIdSimple(id);
+        if (!service) return res.status(404).json({ error: 'Consulting service not found' });
 
-        if (!serviceResult.rows.length) {
-            return res.status(404).json({ error: 'Consulting service not found' });
-        }
-
-        const [countsResult, trendResult] = await Promise.all([
-            pool.query(
-                `SELECT
-                          (SELECT COUNT(*)::int FROM consulting_events WHERE service_id = $1 AND event_type = 'view') AS views,
-                          (SELECT COUNT(*)::int FROM consulting_requests WHERE service_id = $1) AS requests`,
-                [id]
-            ),
-            pool.query(
-                `WITH days AS (
-                    SELECT generate_series(
-                        date_trunc('day', NOW()) - (($2::int - 1) * INTERVAL '1 day'),
-                        date_trunc('day', NOW()),
-                        INTERVAL '1 day'
-                    )::date AS day
-                      ),
-                      views AS (
-                          SELECT date_trunc('day', created_at)::date AS day, COUNT(*)::int AS views
-                          FROM consulting_events
-                          WHERE service_id = $1
-                             AND event_type = 'view'
-                          GROUP BY date_trunc('day', created_at)::date
-                      ),
-                      requests AS (
-                          SELECT date_trunc('day', created_at)::date AS day, COUNT(*)::int AS requests
-                          FROM consulting_requests
-                          WHERE service_id = $1
-                          GROUP BY date_trunc('day', created_at)::date
-                      )
-                 SELECT
-                    to_char(days.day, 'YYYY-MM-DD') AS day,
-                          COALESCE(v.views, 0)::int AS views,
-                          COALESCE(r.requests, 0)::int AS requests
-                 FROM days
-                      LEFT JOIN views v ON v.day = days.day
-                      LEFT JOIN requests r ON r.day = days.day
-                 ORDER BY days.day ASC`,
-                [id, days]
-            ),
-        ]);
-
-        const counts = countsResult.rows[0] || { views: 0, requests: 0 };
+        const counts = await consultingModel.getCountsByService(id);
         const views = Number(counts.views) || 0;
         const requests = Number(counts.requests) || 0;
         const conversionRate = views > 0 ? ((requests / views) * 100) : 0;
+        const trend = await consultingModel.getTrendByService(id, days);
 
-        return res.json({
-            service: serviceResult.rows[0],
-            views,
-            requests,
-            conversion_rate: Number(conversionRate.toFixed(2)),
-            daily_trend: trendResult.rows,
-            days,
-        });
+        return res.json({ service, views, requests, conversion_rate: Number(conversionRate.toFixed(2)), daily_trend: trend, days });
     } catch (err) {
         return next(err);
     }
@@ -634,44 +424,8 @@ const getConsultingRequests = async (req, res, next) => {
         const limit = clamp(req.query.limit, 1, 100, 20);
         const offset = (page - 1) * limit;
 
-        const [rowsResult, countResult] = await Promise.all([
-            pool.query(
-                `SELECT
-                    cr.id,
-                    cr.service_id,
-                    cs.title AS service_title,
-                    cs.slug AS service_slug,
-                    cr.user_id,
-                    u.name AS user_name,
-                    cr.name,
-                    cr.email,
-                    cr.message,
-                    cr.file_url,
-                      cr.status,
-                      cr.priority,
-                      cr.notes,
-                    cr.created_at
-                 FROM consulting_requests cr
-                 JOIN consulting_services cs ON cs.id = cr.service_id
-                 LEFT JOIN users u ON u.id = cr.user_id
-                 ORDER BY cr.created_at DESC
-                 LIMIT $1 OFFSET $2`,
-                [limit, offset]
-            ),
-            pool.query('SELECT COUNT(*)::int AS count FROM consulting_requests'),
-        ]);
-
-        const total = countResult.rows[0].count;
-
-        return res.json({
-            requests: rowsResult.rows,
-            pagination: {
-                page,
-                limit,
-                total,
-                pages: Math.ceil(total / limit),
-            },
-        });
+        const { rows, total } = await consultingModel.getConsultingRequestsPaginated(limit, offset);
+        return res.json({ requests: rows, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
     } catch (err) {
         return next(err);
     }
@@ -681,35 +435,9 @@ const getConsultingRequestById = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query(
-            `SELECT
-                cr.id,
-                cr.service_id,
-                cs.title AS service_title,
-                cs.slug AS service_slug,
-                cr.user_id,
-                requester.name AS user_name,
-                cr.name,
-                cr.email,
-                cr.message,
-                cr.file_url,
-                cr.status,
-                cr.priority,
-                cr.notes,
-                cr.created_at,
-                cr.updated_at
-             FROM consulting_requests cr
-             JOIN consulting_services cs ON cs.id = cr.service_id
-             LEFT JOIN users requester ON requester.id = cr.user_id
-             WHERE cr.id = $1`,
-            [id]
-        );
-
-        if (!result.rows.length) {
-            return res.status(404).json({ error: 'Consulting request not found' });
-        }
-
-        return res.json({ request: result.rows[0] });
+        const request = await consultingModel.getConsultingRequestById(id);
+        if (!request) return res.status(404).json({ error: 'Consulting request not found' });
+        return res.json({ request });
     } catch (err) {
         return next(err);
     }
@@ -719,18 +447,8 @@ const updateConsultingRequestById = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const currentResult = await pool.query(
-            `SELECT id, status, priority, notes
-             FROM consulting_requests
-             WHERE id = $1`,
-            [id]
-        );
-
-        if (!currentResult.rows.length) {
-            return res.status(404).json({ error: 'Consulting request not found' });
-        }
-
-        const current = currentResult.rows[0];
+        const current = await consultingModel.getConsultingRequestById(id);
+        if (!current) return res.status(404).json({ error: 'Consulting request not found' });
 
         const status = req.body.status !== undefined
             ? sanitizeText(req.body.status)
@@ -750,21 +468,8 @@ const updateConsultingRequestById = async (req, res, next) => {
             return res.status(400).json({ error: 'Invalid request priority' });
         }
 
-        const result = await pool.query(
-            `UPDATE consulting_requests
-             SET status = $1,
-                 priority = $2,
-                 notes = $3,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $4
-             RETURNING id, status, priority, notes, updated_at`,
-            [status, priority, notes, id]
-        );
-
-        return res.json({
-            message: 'Consulting request updated successfully',
-            request: result.rows[0],
-        });
+        const updated = await consultingModel.updateConsultingRequest(id, { status, priority, notes });
+        return res.json({ message: 'Consulting request updated successfully', request: updated });
     } catch (err) {
         return next(err);
     }
@@ -772,16 +477,8 @@ const updateConsultingRequestById = async (req, res, next) => {
 
 const getAdminConsultingServices = async (_req, res, next) => {
     try {
-        const result = await pool.query(
-            `SELECT id, title, slug, short_description, hero_subtitle, hero_benefits, content, deliverables, target_audience, is_active, created_at, updated_at
-             FROM consulting_services
-             ORDER BY created_at DESC`
-        );
-
-        return res.json({
-            services: result.rows.map(mapService),
-            count: result.rows.length,
-        });
+        const rows = await consultingModel.getAllServicesAdmin();
+        return res.json({ services: rows.map(mapService), count: rows.length });
     } catch (err) {
         return next(err);
     }
